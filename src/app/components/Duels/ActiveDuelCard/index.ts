@@ -1,0 +1,1 @@
+export { ActiveDuelCard } from "./ActiveDeulCard";

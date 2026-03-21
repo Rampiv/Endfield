@@ -1,0 +1,26 @@
+@use "../../styles/global.scss" as *;
+
+.header {
+  margin-bottom: 20px;
+  &__content {
+    @include flexible();
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 5px 20px;
+    background-color: $background-header;
+    border-radius: 0 0 15px 15px;
+    box-shadow: 0 0 10px black;
+  }
+  &__name {
+    text-decoration: underline;
+  }
+  &__btn {
+    @include btnReset();
+    @include flexible();
+    border-bottom: 1px solid black;
+    align-self: flex-end;
+    color: $black;
+    font-size: 16px;
+    font-family: $family;
+  }
+}

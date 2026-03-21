@@ -1,0 +1,127 @@
+@use "../../../styles/global.scss" as *;
+
+.draft-phase {
+  &__title {
+    color: $main;
+    margin-bottom: 10px;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__h3 {
+    font-weight: bold;
+    color: $main-3;
+    text-align: center;
+    font-size: 30px;
+  }
+
+  .column {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 1.5rem;
+
+    &.me {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+    }
+  }
+
+  // Модальное окно
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-content {
+    background: #1e293b;
+    padding: 2rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid #475569;
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      h3 {
+        margin: 0;
+        color: #fbbf24;
+      }
+      button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+    }
+
+    .modal-weapons-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 1rem;
+
+      .weapon-option {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 0.5rem;
+        cursor: pointer;
+        text-align: center;
+        transition: background 0.2s;
+        &:hover {
+          background: rgba(255, 255, 255, 0.15);
+        }
+        .weapon-name {
+          font-size: 0.8rem;
+          color: #cbd5e1;
+          margin-top: 0.5rem;
+        }
+      }
+    }
+  }
+
+  .read-only-msg {
+    text-align: center;
+    color: $main;
+    margin-top: 2rem;
+    font-style: italic;
+    text-decoration: underline;
+  }
+  .waiting-msg {
+    text-align: center;
+    color: #fbbf24;
+    margin-top: 1rem;
+    font-weight: bold;
+  }
+}
+
+.readonly-section {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+  &:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+}

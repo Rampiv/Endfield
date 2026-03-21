@@ -1,0 +1,31 @@
+@use "../../../styles/global.scss" as *;
+.active-duel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  &__container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    border-radius: 5px;
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 0, 1) 0%,
+      rgba(41, 53, 86, 0) 100%
+    );
+  }
+  &__players {
+    display: flex;
+    gap: 5px;
+  }
+  &__btn {
+    @include btnReset();
+    @include standartTransition();
+    @include standartAnimZoom();
+    padding: 5px;
+    border: 1px solid black;
+    border-radius: 15px;
+    width: fit-content;
+  }
+}

@@ -1,0 +1,113 @@
+@use "../../../styles/global.scss" as *;
+
+.character-draft {
+  .draft-section {
+    margin-bottom: 10px;
+  }
+  .draft-label {
+    font-size: 0.8em;
+    color: $main-2;
+    margin-bottom: 5px;
+    
+  }
+
+  .draft-slots__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .draft-slot {
+    aspect-ratio: 3/4;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border: 2px dashed #475569;
+
+    &--ban {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      width: fit-content;
+    }
+    &--pick {
+      border-color: #22c55e;
+      background: rgba(34, 197, 94, 0.1);
+    }
+    &__content {
+      width: 100%;
+      height: 100%;
+    }
+    &__placeholder {
+      color: #64748b;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  }
+
+  .available-chars-list {
+    margin-top: 2rem;
+    h4 {
+      color: $main-2;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    .chars-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 1rem;
+    }
+    .char-card-wrapper {
+      position: relative;
+      .char-actions {
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        gap: 4px;
+        .btn-action {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          border: none;
+          font-size: 12px;
+          cursor: pointer;
+          &.btn-ban {
+            background: #ef4444;
+            color: white;
+          }
+          &.btn-pick {
+            background: #22c55e;
+            color: white;
+          }
+        }
+      }
+    }
+  }
+}
+
+.draft-label-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.btn-undo {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: #dc2626;
+  }
+}

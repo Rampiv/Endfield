@@ -1,0 +1,364 @@
+@use "../../../styles/global.scss" as *;
+
+.boss-fight-results {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+
+  .read-only-banner {
+    background: #334155;
+    color: #cbd5e1;
+    padding: 0.75rem;
+    text-align: center;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #475569;
+  }
+
+  .title {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #f8fafc;
+  }
+
+  // Сетка игроков
+  .players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  // Карточка игрока
+  .player-card {
+    background: rgba(30, 41, 59, 0.9);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 1.5rem;
+    position: relative;
+    transition: all 0.2s;
+
+    &--me {
+      background: rgba(36, 79, 148, 0.9);
+      border-color: #3b82f6;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+
+      h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        color: #cbd5e1;
+      }
+
+      .edit-btn {
+        background: #475569;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        &:hover {
+          background: #64748b;
+        }
+      }
+    }
+
+    .result-block {
+      margin-bottom: 1.5rem;
+
+      .label {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        margin-bottom: 0.25rem;
+      }
+
+      .time-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: greenyellow;
+
+        span {
+          font-size: 1rem;
+          color: #94a3b8;
+        }
+      }
+
+      .time-empty {
+        font-size: 1.5rem;
+        color: #475569;
+        font-style: italic;
+      }
+    }
+
+    // Квадратики ретраев
+    .retries-block {
+      margin-bottom: 1.5rem;
+
+      .label {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        strong {
+          color: #fbbf24;
+        }
+      }
+
+      .retries-dots {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+
+        .retry-dot {
+          width: 24px;
+          height: 24px;
+          border-radius: 4px;
+          border: 2px solid #475569;
+          background: transparent;
+          transition: all 0.2s;
+
+          &--used {
+            background: #fbbf24;
+            border-color: #f59e0b;
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+          }
+
+          &--available {
+            border-color: #64748b;
+            background: rgba(100, 116, 139, 0.1);
+          }
+        }
+      }
+    }
+
+    // Кнопки действий
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      .btn {
+        padding: 0.75rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: opacity 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        &--submit {
+          background: #22c55e;
+          color: white;
+          &:hover:not(:disabled) {
+            background: #16a34a;
+          }
+        }
+
+        &--retry {
+          background: #f59e0b;
+          color: white;
+          &:hover:not(:disabled) {
+            background: #d97706;
+          }
+        }
+
+        &--edit {
+          background: #3b82f6;
+          color: white;
+          font-size: 0.9rem;
+          padding: 0.5rem;
+          &:hover:not(:disabled) {
+            background: #2563eb;
+          }
+        }
+      }
+    }
+  }
+
+  // Блок разницы времени
+  .diff-block {
+    text-align: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    margin-bottom: 2rem;
+
+    .label {
+      color: #94a3b8;
+      margin-right: 0.5rem;
+    }
+
+    .value {
+      font-size: 1.25rem;
+      font-weight: bold;
+
+      &--p1-faster {
+        color: #22c55e;
+      }
+      &--p2-faster {
+        color: #ef4444;
+      }
+      &--draw {
+        color: #cbd5e1;
+      }
+    }
+
+    .comment {
+      color: #94a3b8;
+      margin-left: 0.5rem;
+      font-size: 0.9rem;
+    }
+  }
+
+  // Победитель
+  .winner-block {
+    text-align: center;
+    padding: 2rem;
+    background: rgba(234, 179, 8, 0.1);
+    border-radius: 12px;
+    border: 2px solid #eab308;
+    margin-top: 2rem;
+
+    h2 {
+      margin: 0;
+      color: #eab308;
+      font-size: 2rem;
+    }
+  }
+
+  // Модальное окно
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-content {
+    background: #1e293b;
+    padding: 2rem;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 450px;
+    border: 1px solid #475569;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+
+    h3 {
+      margin-top: 0;
+      color: #fbbf24;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      label {
+        font-size: 0.9rem;
+        color: #cbd5e1;
+
+        .hint {
+          font-size: 0.8rem;
+          color: #94a3b8;
+          font-weight: normal;
+        }
+      }
+
+      input,
+      textarea {
+        padding: 0.75rem;
+        border-radius: 6px;
+        border: 1px solid #475569;
+        background: #0f172a;
+        color: white;
+        font-family: inherit;
+
+        &:focus {
+          outline: none;
+          border-color: #3b82f6;
+        }
+      }
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      margin-top: 1.5rem;
+
+      button {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: opacity 0.2s;
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        &--cancel {
+          background: #475569;
+          color: white;
+          &:hover:not(:disabled) {
+            background: #64748b;
+          }
+        }
+
+        &--confirm {
+          color: white;
+          &:hover:not(:disabled) {
+            opacity: 0.9;
+          }
+
+          &--submit {
+            background: #22c55e;
+          }
+          &--retry {
+            background: #f59e0b;
+          }
+          &--admin {
+            background: #ef4444;
+          }
+        }
+      }
+    }
+  }
+}
+
+.waiting-msg {
+  text-align: center;
+  color: #fbbf24;
+  margin-top: 1rem;
+  font-weight: bold;
+}

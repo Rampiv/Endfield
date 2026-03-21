@@ -1,0 +1,57 @@
+@use "../styles/global.scss" as *;
+
+.user {
+  &__list {
+    @include listReset();
+    @include flexible();
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+  
+  &__item {
+    position: relative;
+    width: fit-content;
+    min-width: 100px
+  }
+
+  &__btn-add {
+    @include btnReset();
+    @include standartTransition();
+    @include standartAnimZoom();
+    background: $btn;
+    padding: 5px;
+    border-radius: 5px;
+  }
+
+  &__btn-dell {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  &__btn-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+  &__btn-edit {
+    @include btnReset();
+    @include standartTransition();
+    @include standartAnimZoom();
+    border: none;
+    outline: none;
+    padding: 5px;
+    border-radius: 5px;
+    &_on {
+      background-color: red;
+    }
+    &_off {
+      background-color: green;
+    }
+  }
+
+  &__item-null {
+    margin-bottom: 5px;
+  }
+}

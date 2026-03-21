@@ -1,0 +1,42 @@
+@use "../../../styles/global.scss" as *;
+
+.search-input {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.item-choose {
+  &__empty {
+    margin-bottom: 10px;
+  }
+  &__list {
+    @include listReset();
+    @include flexible();
+    gap: 10px;
+    flex-wrap: wrap;
+    overflow: scroll;
+    max-height: 60vh;
+    margin-bottom: 10px;
+  }
+  &__item {
+    max-width: 100px;
+  }
+  &__h3 {
+    font-size: 10px;
+  }
+  &__descr {
+    font-size: 10px;
+  }
+  &__close-container {
+    @include flexible();
+  }
+  &__btn-close {
+    @include btnReset();
+    @include standartTransition();
+    @include standartAnimZoom();
+    background: $btn;
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid black;
+  }
+}

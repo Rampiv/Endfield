@@ -1,0 +1,1 @@
+export { BossFightResults } from "./BossFightResult";

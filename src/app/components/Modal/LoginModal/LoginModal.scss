@@ -1,0 +1,18 @@
+@use "../../../styles/global.scss" as *;
+
+.form-login {
+  @include flexible();
+  flex-direction: column;
+  gap: 10px;
+  &__title{
+    margin-bottom: 10px;
+  }
+  input {
+    width: 100%;
+    padding: 5px;
+  }
+  &__btns {
+    display: flex;
+    gap: 10px;
+  }
+}

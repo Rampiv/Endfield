@@ -1,0 +1,78 @@
+@use "../../../styles/global.scss" as *;
+
+.weapon-selector {
+  .weapon-slots {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .weapon-slot {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px dashed #475569;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &.filled {
+      border-style: solid;
+      border-color: $main-2;
+      background: rgba(251, 191, 36, 0.1);
+    }
+    &.empty:hover {
+      border-color: $main-3;
+      background: rgba(251, 191, 36, 0.05);
+    }
+
+    .weapon-slot__content {
+      width: 100%;
+      height: fit-content;
+    }
+    .placeholder {
+      color: #64748b;
+      font-size: 0.8rem;
+    }
+
+    .remove-btn {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      width: 20px;
+      height: 20px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 10;
+    }
+  }
+
+  .btn-submit-weapons {
+    width: 100%;
+    padding: 0.75rem;
+    background: #22c55e;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .ready-msg {
+    text-align: center;
+    color: $main-2;
+    font-weight: bold;
+    margin-top: 0.5rem;
+  }
+}

@@ -1,0 +1,44 @@
+@use "variables" as *;
+
+@mixin flexible() {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@mixin listReset() {
+  margin-top: 0;
+  margin-bottom: 0;
+  list-style: none;
+  padding-left: 0;
+}
+
+@mixin textReset() {
+  margin: 0;
+  padding: 0;
+}
+
+@mixin btnReset() {
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+@mixin standartTransition() {
+  transition: all ease-out 0.3s;
+}
+
+@mixin standartAnimZoom() {
+  @media (hover) {
+    &:hover {
+      transform: scale(1.02);
+    }
+  }
+  &:focus,
+  &:active {
+    transform: scale(1.03);
+    z-index: 2;
+  }
+}

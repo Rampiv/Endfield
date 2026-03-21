@@ -1,0 +1,55 @@
+@use "../../styles/global.scss" as *;
+
+.duel-page {
+  &__title {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 10px;
+    color: $main-2;
+    text-decoration: underline;
+  }
+}
+
+.duel-admin {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 1000;
+  background: #1e293b;
+  border: 2px solid $main-2;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  color: $main-3;
+
+  &__h3 {
+    color: $main-2;
+    margin-bottom: 10px;
+  }
+  &__btns {
+    @include flexible();
+    flex-direction: column;
+    gap: 10px;
+  }
+  &__btn {
+    @include btnReset();
+    padding: 5px;
+    border: 1px solid $main;
+    border-radius: 10px;
+    color: $main;
+    background-color: $main-2;
+  }
+}
+
+.spectator-nav {
+    @include flexible();
+    gap: 10px;
+    &__btn{
+        @include btnReset();
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        font-weight: bold;
+        color: $main-3;
+        min-width: 100px;
+    }
+}

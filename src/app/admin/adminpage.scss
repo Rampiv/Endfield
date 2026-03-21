@@ -1,0 +1,52 @@
+@use "../styles/global.scss" as *;
+
+.admin {
+  &-h1 {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  &__btn {
+    cursor: pointer;
+  }
+  &__btn-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    gap: 2px;
+  }
+}
+
+.user {
+  &__btn-add {
+    margin-bottom: 10px;
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  &__content{
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 5px;
+  }
+  &__btn-container{
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  &__btn{
+    @include btnReset();
+    @include standartTransition();
+    @include standartAnimZoom();
+  }
+  &__btn-create{
+    border-radius: 10px;
+    background-color: green;
+    padding: 5px 10px;
+    border: 1px solid black;
+  }
+}
