@@ -12,7 +12,7 @@ interface Props {
 export function ActiveDuelCard({ duel, currentUserId }: Props) {
   const opponentId =
     duel.player1 === currentUserId ? duel.player2 : duel.player1;
-  const { formatted, isOutOfTime } = useDuelTimer(duel.id, currentUserId);
+  // const { formatted, isOutOfTime } = useDuelTimer(duel.id, currentUserId);
 
   const statusText = {
     drafting: "Драфт персонажей",
@@ -24,7 +24,7 @@ export function ActiveDuelCard({ duel, currentUserId }: Props) {
 
   return (
     <Link href={`/duel/${duel.id}`}>
-      <div>
+      {/* <div>
         <span>{statusText}</span>
         {duel.status === "drafting" && (
           <span
@@ -33,7 +33,7 @@ export function ActiveDuelCard({ duel, currentUserId }: Props) {
             ⏱️ {formatted}
           </span>
         )}
-      </div>
+      </div> */}
 
       <div>
         Противник: {opponentId} {/* Здесь можно подгрузить имя из users */}

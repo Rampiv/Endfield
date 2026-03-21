@@ -20,8 +20,8 @@ export const fetchWeapons = createAsyncThunk("weapons/fetch", async () => {
   if (snapshot.exists()) {
     const data = snapshot.val();
     return Object.entries(data).map(([id, value]) => ({
-      id,
       ...(value as Weapon),
+      id,
     }));
   }
   return [];
