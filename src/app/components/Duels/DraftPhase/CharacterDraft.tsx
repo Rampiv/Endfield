@@ -1,12 +1,11 @@
 // src/components/duels/draft/CharacterDraft.tsx
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Character, Duel } from "@/lib/types";
 import { ItemCard } from "@/app/components/ItemCard";
 import "./CharacterDraft.scss";
 
-// Добавляем тип для профиля пользователя (упрощенный)
 interface UserProfile {
   characters?: Record<string, { addedAt: number; constellation?: number }>;
 }
@@ -19,8 +18,9 @@ interface Props {
   canInteract: boolean;
   isAdmin: boolean;
   allCharacters: Character[];
-  playerProfile?: UserProfile; // ✅ Новый проп
+  playerProfile?: UserProfile;
   onAction: (charId: string, action: "ban" | "pick") => void;
+  onSkipBan?: () => void; // ✅ Новый проп для пропуска бана
   onUndo?: (moveType: "ban" | "pick") => void;
 }
 
@@ -34,6 +34,7 @@ export function CharacterDraft({
   allCharacters,
   playerProfile,
   onAction,
+  onSkipBan,
   onUndo,
 }: Props) {
   const myPicks = duel.draft?.picks?.[playerId] || [];
@@ -55,13 +56,23 @@ export function CharacterDraft({
     );
   }, [allCharacters, allBannedIds, allPickedIds]);
 
-  const canBan = myBans.length < (duel.settings.bansCount || 1);
+  const bansLimit = duel.settings.bansCount || 1;
+
+  const hasBanned = myBans.length > 0;
+
+  const canBan = !hasBanned && myBans.length < bansLimit;
   const canPick = myPicks.length < (duel.settings.picksCount || 4);
 
   const isActuallyMyTurn = playerId === currentUserId && isMyTurn;
   const areButtonsActive = canInteract && isActuallyMyTurn;
 
-  // Хелпер для получения консты конкретного персонажа из профиля
+  const hasSkippedBan = duel.draft?.banSkipped?.[playerId] === true; // Нужна поддержка в типах и БД
+
+  const isBanPhaseOver =
+    (myBans.length >= bansLimit || hasSkippedBan) && // Я готов
+    // Проверка противника (нужно знать его статус)
+    true; // Заглушка, пока нет данных о противнике
+
   const getCharConstellation = (charId: string) => {
     return playerProfile?.characters?.[charId]?.constellation ?? 0;
   };
@@ -73,18 +84,15 @@ export function CharacterDraft({
   ) => {
     const char = id ? allCharacters.find((c) => c.id === id) : null;
     const key = `${type}-${index}-${id || "empty"}`;
-
-    // Получаем консту для отображения в слоте
     const constellation = id ? getCharConstellation(id) : 0;
 
     return (
       <div
         key={key}
-        className={`draft-slot--${type} ${!char ? "draft-slot--empty" : ""}`}
+        className={`draft-slot--${type} ${!char ? "draft-slot--empty" : ""} ${type === "ban" && hasSkippedBan && id === undefined ? "draft-slot--skipped" : ""}`}
       >
         {char ? (
           <div className="draft-slot__content">
-            {/* ✅ Передаем консту в ItemCard */}
             <ItemCard item={char} constellationOverride={constellation} />
           </div>
         ) : (
@@ -102,23 +110,35 @@ export function CharacterDraft({
       <div className="draft-section">
         <div className="draft-label-header">
           <div className="draft-label">
-            🚫 Бан ({myBans.length}/{duel.settings.bansCount || 1})
+            🚫 Бан ({myBans.length}/{bansLimit})
           </div>
+
           {isAdmin && myBans.length > 0 && onUndo && (
-            <button
-              onClick={() => onUndo("ban")}
-              className="btn-undo"
-              title="Отменить последний бан (Admin)"
-            >
-              ↩️ Отменить бан
+            <button onClick={() => onUndo("ban")} className="btn-undo">
+              ↩️
             </button>
           )}
         </div>
+
         <div className="draft-slots__grid">
-          {Array.from({ length: duel.settings.bansCount || 1 }).map((_, i) =>
+          {Array.from({ length: bansLimit }).map((_, i) =>
             renderSlot(myBans[i], "ban", i),
           )}
         </div>
+
+        {/* ✅ КНОПКА ПРОПУСКА БАНА */}
+        {areButtonsActive && !hasBanned && !hasSkippedBan && (
+          <button
+            onClick={() => onSkipBan && onSkipBan()}
+            className="btn-skip-ban"
+          >
+            Пропустить бан
+          </button>
+        )}
+
+        {hasSkippedBan && (
+          <p className="descr-skip-ban">Вы пропустили фазу бана</p>
+        )}
       </div>
 
       {/* Секция Пиков */}
@@ -128,12 +148,8 @@ export function CharacterDraft({
             ✅ Выбрано ({myPicks.length}/{duel.settings.picksCount || 4})
           </div>
           {isAdmin && myPicks.length > 0 && onUndo && (
-            <button
-              onClick={() => onUndo("pick")}
-              className="btn-undo"
-              title="Отменить последний пик (Admin)"
-            >
-              ↩️ Отменить пик
+            <button onClick={() => onUndo("pick")} className="btn-undo">
+              ↩️
             </button>
           )}
         </div>
@@ -157,17 +173,16 @@ export function CharacterDraft({
           <div className="chars-grid">
             {availableChars.map((char) => {
               if (!char.id) return null;
-              // Получаем консту для доступного персонажа
               const constellation = getCharConstellation(char.id);
 
               return (
                 <div key={char.id} className="char-card-wrapper">
-                  {/* ✅ Передаем консту в ItemCard */}
                   <ItemCard item={char} constellationOverride={constellation} />
 
                   {areButtonsActive && (
                     <div className="char-actions">
-                      {canBan && (
+                      {/* Кнопка Бана */}
+                      {canBan && !hasSkippedBan && (
                         <button
                           onClick={() => onAction(char.id!, "ban")}
                           className="btn-action btn-ban"
@@ -175,6 +190,8 @@ export function CharacterDraft({
                           🚫
                         </button>
                       )}
+
+                      {/* Кнопка Пика */}
                       {canPick && (
                         <button
                           onClick={() => onAction(char.id!, "pick")}

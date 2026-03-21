@@ -16,6 +16,8 @@ import { Duel, Character, Weapon } from "@/lib/types";
 import { WeaponSelector } from "./WeaponSelection";
 import { CharacterDraft } from "./CharacterDraft";
 import "./DraftPhase.scss";
+import { ref, update } from "firebase/database";
+import { db } from "@/lib/firebase";
 
 interface Props {
   duel: Duel;
@@ -165,6 +167,28 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
     }
   };
 
+  const handleSkipBan = async () => {
+  if (!canInteract || duel.currentTurn !== currentUserId) {
+    toast.error("Не ваш ход!");
+    return;
+  }
+  
+  try {
+    // Обновляем базу: помечаем, что игрок пропустил, и передаем ход
+    const nextPlayer = duel.player1 === currentUserId ? duel.player2 : duel.player1;
+    
+    await update(ref(db, `duels/${duel.id}`), {
+      [`draft/banSkipped/${currentUserId}`]: true,
+      currentTurn: nextPlayer,
+      turnStartTime: Date.now(),
+    });
+    
+    toast.success("⏭️ Бан пропущен!");
+  } catch (e: any) {
+    toast.error(e.message || "Ошибка");
+  }
+};
+
   return (
     <div className="draft-phase">
       <h2 className="draft-phase__title">Фаза драфта</h2>
@@ -187,6 +211,7 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
               onAction={handleCharAction}
               onUndo={(type) => handleUndo(duel.player1, type)}
               isAdmin={isAdmin}
+              onSkipBan={handleSkipBan}
             />
           </div>
 
@@ -238,6 +263,7 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
               onAction={handleCharAction}
               onUndo={(type) => handleUndo(duel.player2, type)}
               isAdmin={isAdmin}
+              onSkipBan={handleSkipBan}
             />
           </div>
 

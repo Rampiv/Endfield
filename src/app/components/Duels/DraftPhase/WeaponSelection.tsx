@@ -9,7 +9,6 @@ import { Duel, Weapon } from "@/lib/types";
 import { ItemCard } from "@/app/components/ItemCard";
 import "./WeaponSelection.scss";
 
-// Упрощенный тип профиля
 interface UserProfile {
   weapons?: Record<string, { addedAt: number; constellation?: number }>;
 }
@@ -22,7 +21,7 @@ interface Props {
   canInteract: boolean;
   onSubmit: (weapons: string[]) => void;
   myWeaponIds?: string[];
-  playerProfile?: UserProfile; // ✅ Новый проп
+  playerProfile?: UserProfile;
 }
 
 export function WeaponSelector({
@@ -60,7 +59,10 @@ export function WeaponSelector({
 
   const handleSelect = (id: string) => {
     if (!canEdit) return;
-    if (localWeapons.length >= 4) return;
+    if (localWeapons.length >= 4) {
+      return;
+    }
+    // Добавляем ID, даже если он уже есть в массиве (разрешаем дубликаты)
     setLocalWeapons((prev) => [...prev, id]);
   };
 
@@ -71,30 +73,23 @@ export function WeaponSelector({
 
   const displayWeapons = isReady ? dbWeapons : localWeapons;
 
-  // Хелпер для получения консты оружия из профиля
   const getWeaponConstellation = (wId: string) => {
     return playerProfile?.weapons?.[wId]?.constellation ?? 0;
   };
 
+  // ✅ ИСПРАВЛЕННАЯ ЛОГИКА: Разрешаем дубликаты
   const availableWeapons = useMemo(() => {
-    const allTakenInDuel = new Set([
-      ...(duel.weapons?.[duel.player1] || []),
-      ...(duel.weapons?.[duel.player2] || []),
-    ]);
-
-    if (canEdit) {
-      localWeapons.forEach((id) => allTakenInDuel.add(id));
-    }
-
     return allWeapons.filter((w) => {
       if (!w.id) return false;
+
+      // Проверка 1: Есть ли это оружие в моем личном инвентаре (профиль пользователя)?
       if (myWeaponIds && myWeaponIds.length > 0) {
         if (!myWeaponIds.includes(w.id)) return false;
       }
-      if (allTakenInDuel.has(w.id)) return false;
+
       return true;
     });
-  }, [allWeapons, duel, localWeapons, canEdit, myWeaponIds]);
+  }, [allWeapons, myWeaponIds]);
 
   return (
     <div className="weapon-selector">
@@ -103,7 +98,6 @@ export function WeaponSelector({
           const wId = displayWeapons[idx];
           const weapon = wId ? allWeapons.find((w) => w.id === wId) : null;
           
-          // Получаем консту для отображения в слоте
           const constellation = wId ? getWeaponConstellation(wId) : 0;
 
           return (
@@ -115,7 +109,6 @@ export function WeaponSelector({
               {weapon ? (
                 <>
                   <div className="weapon-slot__content">
-                    {/* ✅ Передаем консту в ItemCard */}
                     <ItemCard item={weapon} constellationOverride={constellation} />
                   </div>
                   {canEdit && (
@@ -160,23 +153,26 @@ export function WeaponSelector({
               <button onClick={() => setIsOpen(false)}>✕</button>
             </div>
             <div className="modal-weapons-grid">
-              {availableWeapons.map((w) => {
-                if (!w.id) return null;
-                // Получаем консту для оружия в модалке
-                const constellation = getWeaponConstellation(w.id);
-                return (
-                  <div
-                    key={w.id}
-                    className="weapon-option"
-                    onClick={() => handleSelect(w.id!)}
-                  >
-                    {/* ✅ Передаем консту в ItemCard */}
-                    <ItemCard item={w} constellationOverride={constellation} />
-                    <span className="weapon-name">{w.name}</span>
-                  </div>
-                );
-              })}
-              {availableWeapons.length === 0 && <p>Нет доступного оружия</p>}
+              {availableWeapons.length > 0 ? (
+                availableWeapons.map((w) => {
+                  if (!w.id) return null;
+                  const constellation = getWeaponConstellation(w.id);
+                  return (
+                    <div
+                      key={w.id}
+                      className="weapon-option"
+                      onClick={() => handleSelect(w.id!)}
+                    >
+                      <ItemCard item={w} constellationOverride={constellation} />
+                      <span className="weapon-name">{w.name}</span>
+                    </div>
+                  );
+                })
+              ) : (
+                <p style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8' }}>
+                  Нет доступного оружия
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -44,6 +44,7 @@ export interface DuelSettings {
 export interface DuelDraft {
   bans: Record<string, string[]>;
   picks: Record<string, string[]>;
+   banSkipped?: Record<string, boolean>;
 }
 
 export interface DuelResult {

@@ -166,7 +166,7 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
               className="form__input"
               style={{ fontSize: '1.1rem', fontWeight: 'bold' }}
             >
-              {[0, 1, 2, 3, 4, 5, 6].map((n) => (
+              {[0, 1, 2, 3, 4, 5].map((n) => (
                 <option key={n} value={n}>C{n} {n === 0 ? '(Базовый)' : ''}</option>
               ))}
             </select>

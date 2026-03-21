@@ -11,9 +11,9 @@ import {
   setInvites,
 } from "@/lib/slices/duelsSlice";
 import toast from "react-hot-toast";
-import { onValue, ref } from "firebase/database";
+import { onValue, ref, get } from "firebase/database";
 import { db } from "@/lib/firebase";
-import { DuelInvite } from "@/lib/types";
+import { DuelInvite, Duel } from "@/lib/types";
 import { getDefaultDuelSettings } from "@/lib/config/duelConfig";
 import "./InviteSection.scss";
 
@@ -42,7 +42,6 @@ export function DuelInvitesSection({ userId }: Props) {
   const [selectedOpponent, setSelectedOpponent] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  // ✅ Создаем карту пользователей для быстрого поиска
   const userNamesMap = useMemo(() => {
     const map = new Map<string, string>();
     allUsers.forEach((user: any) => {
@@ -92,21 +91,39 @@ export function DuelInvitesSection({ userId }: Props) {
     };
   }, [dispatch, userId]);
 
+  // ✅ УЛУЧШЕННАЯ ПРОВЕРКА ДОСТУПНОСТИ СОПЕРНИКА
   const availableOpponents = useMemo(() => {
     return allUsers.filter((user: any) => {
       if (!user?.uid || user.uid === userId) return false;
 
-      const hasActiveDuel = activeDuels.some(
+      // 1. Проверка по списку активных дуэлей (быстрая)
+      const hasVisibleActiveDuel = activeDuels.some(
         (duel) =>
           (duel.player1 === userId && duel.player2 === user.uid) ||
           (duel.player2 === userId && duel.player1 === user.uid),
       );
-      if (hasActiveDuel) return false;
+      if (hasVisibleActiveDuel) return false;
 
+      // 2. Проверка на.pending инвайты
       const hasPendingInvite = sentInvites.some(
         (invite) => invite.to === user.uid && invite.status === "pending",
       );
       if (hasPendingInvite) return false;
+
+      // 3. Глубокая проверка: если в профиле пользователя есть activeDuel,
+      // но её нет в списке activeDuels (значит она битая/завершенная),
+      // мы всё равно считаем игрока доступным (так как бэкенд очистит это при отправке).
+      // Но для UI лучше перестраховаться и проверить наличие реальной дуэли.
+      const userActiveDuelId = user?.activeDuel?.duelId;
+      if (userActiveDuelId) {
+        const realDuelExists = activeDuels.some(d => d.id === userActiveDuelId && d.status !== 'finished');
+        if (realDuelExists) {
+           // Если дуэль реально есть и активна -> блокируем
+           return false;
+        }
+        // Если дуэли нет в списке activeDuels, значит она либо завершена, либо удалена.
+        // Считаем игрока доступным (бэкенд почистит хвосты).
+      }
 
       return true;
     });
@@ -158,7 +175,6 @@ export function DuelInvitesSection({ userId }: Props) {
     }
   };
 
-  // Хелпер для получения имени
   const getUserName = (uid: string) => {
     return userNamesMap.get(uid) || "Игрок";
   };

@@ -56,18 +56,15 @@ export const makeDraftMove = createAsyncThunk(
 
     if (duel.currentTurn !== userId) throw new Error("Not your turn");
 
-    // ✅ Используем транзакцию для работы с массивами
     const draftPath = `draft/${moveType === "ban" ? "bans" : "picks"}/${userId}`;
     const draftRef = ref(db, `duels/${duelId}/${draftPath}`);
     const draftSnap = await get(draftRef);
     const currentList = draftSnap.exists() ? (draftSnap.val() as string[]) : [];
 
-    // Добавляем персонажа, если его ещё нет
     if (!currentList.includes(characterId)) {
       await set(draftRef, [...currentList, characterId]);
     }
 
-    // Передаём ход
     const nextPlayer = duel.player1 === userId ? duel.player2 : duel.player1;
     await update(ref(db, `duels/${duelId}`), {
       currentTurn: nextPlayer,
@@ -197,7 +194,6 @@ export const acceptDuelInvite = createAsyncThunk(
 
     const invite = inviteSnap.val() as DuelInvite;
 
-    // ✅ Берем дефолтные настройки и мержим с переданными (если есть)
     const defaultSettings = getDefaultDuelSettings();
     const finalSettings: DuelSettings = { ...defaultSettings, ...settings };
 
@@ -209,7 +205,7 @@ export const acceptDuelInvite = createAsyncThunk(
       status: "drafting",
       createdAt: Date.now(),
       startedAt: Date.now(),
-      settings: finalSettings, // ✅ Используем готовые настройки
+      settings: finalSettings,
       currentTurn: invite.from,
       turnStartTime: Date.now(),
       playerTimers: {
@@ -240,12 +236,14 @@ export const acceptDuelInvite = createAsyncThunk(
           used: 0,
         },
       },
-      // Добавляем weaponsCount в настройки дуэли, если нужно
       weapons: {},
     };
 
+    // ✅ СТРАХОВКА: Очищаем старые activeDuel перед записью новых
     await Promise.all([
       set(duelRef, duel),
+      update(ref(db, `users/${invite.from}/activeDuel`), { activeDuel: null }),
+      update(ref(db, `users/${invite.to}/activeDuel`), { activeDuel: null }),
       update(ref(db, `users/${invite.from}/activeDuel`), { duelId: duel.id }),
       update(ref(db, `users/${invite.to}/activeDuel`), { duelId: duel.id }),
       update(inviteRef, { status: "accepted" }),
@@ -264,7 +262,7 @@ export const declineDuelInvite = createAsyncThunk(
   },
 );
 
-// 📤 Отправить инвайт
+// 📤 Отправить инвайт (С УМНОЙ ПРОВЕРКОЙ)
 export const sendDuelInvite = createAsyncThunk(
   "duels/sendInvite",
   async ({
@@ -277,17 +275,49 @@ export const sendDuelInvite = createAsyncThunk(
     settings?: Partial<DuelSettings>;
   }) => {
     const existingDuelsSnap = await get(ref(db, "duels"));
-    if (existingDuelsSnap.exists()) {
-      const hasActive = Object.values(existingDuelsSnap.val()).some(
-        (duel: any) =>
-          (duel.player1 === from && duel.player2 === to) ||
-          (duel.player1 === to &&
-            duel.player2 === from &&
-            duel.status !== "finished" &&
-            duel.status !== "cancelled"),
-      );
-      if (hasActive)
-        throw new Error("У вас уже есть активная дуэль с этим игроком");
+    const allDuels = existingDuelsSnap.exists()
+      ? (existingDuelsSnap.val() as Record<string, Duel>)
+      : {};
+
+    // Функция проверки и очистки статуса игрока
+    const checkAndCleanPlayer = async (uid: string) => {
+      const userSnap = await get(ref(db, `users/${uid}`));
+      if (!userSnap.exists()) return false;
+
+      const userData = userSnap.val();
+      const activeDuelId = userData?.activeDuel?.duelId;
+
+      if (!activeDuelId) return false; // Игрок свободен
+
+      const duelData = allDuels[activeDuelId];
+
+      // Если дуэли нет в базе ИЛИ она завершена/отменена -> считаем игрока СВОБОДНЫМ
+      if (
+        !duelData ||
+        duelData.status === "finished" ||
+        duelData.status === "cancelled"
+      ) {
+        // ✅ ИСПРАВЛЕНИЕ ОШИБКИ TS: Обновляем родительский узел, устанавливая поле в null
+        await update(ref(db, `users/${uid}`), { activeDuel: null });
+
+        console.log(`Cleared stale activeDuel for user ${uid}`);
+        return false;
+      }
+
+      // Если дуэль активна -> игрок занят
+      // Дополнительная проверка: не с этим ли игроком уже идет дуэль?
+      if (duelData.player1 === to || duelData.player2 === to) {
+        throw new Error("У вас уже есть активная дуэль с этим игроком!");
+      }
+
+      return true; // Игрок занят другой дуэлью
+    };
+
+    const isFromBusy = await checkAndCleanPlayer(from);
+    const isToBusy = await checkAndCleanPlayer(to);
+
+    if (isFromBusy || isToBusy) {
+      throw new Error("Один из игроков уже участвует в другой активной дуэли.");
     }
 
     const inviteRef = push(ref(db, "duelInvites"));
@@ -374,18 +404,15 @@ export const submitDuelResult = createAsyncThunk(
     const p1Result = newResults[duel.player1];
     const p2Result = newResults[duel.player2];
 
-    // ✅ ИСПРАВЛЕНИЕ: Явно приводим к числу и проверяем существование
     if (p1Result?.bossTime !== undefined && p2Result?.bossTime !== undefined) {
       const p1Time = Number(p1Result.bossTime);
       const p2Time = Number(p2Result.bossTime);
 
       let winner: string | null = null;
-
-      // Используем небольшую погрешность для float сравнений, хотя для времени обычно не нужно
       const epsilon = 0.001;
 
       if (Math.abs(p1Time - p2Time) < epsilon) {
-        winner = null; // Ничья
+        winner = null;
       } else if (p1Time < p2Time) {
         winner = duel.player1;
       } else {
@@ -395,9 +422,11 @@ export const submitDuelResult = createAsyncThunk(
       updates["results/winner"] = winner;
       updates["results/finishedAt"] = Date.now();
 
-      // ✅ Меняем статус только если он еще не finished
       if (duel.status !== "finished") {
         updates["status"] = "finished";
+        // ✅ ОПЦИЯ: Можно раскомментировать, чтобы автоматически очищать activeDuel при финише
+        // updates[`users/${duel.player1}/activeDuel`] = null;
+        // updates[`users/${duel.player2}/activeDuel`] = null;
         console.log("🏆 Дуэль завершена! Победитель:", winner || "Ничья");
       }
     }
@@ -485,28 +514,22 @@ export const submitDuelWeapons = createAsyncThunk(
     userId: string;
     weaponIds: string[];
   }) => {
-    // ✅ 1. Сначала получаем данные из базы (этих строк не хватало)
     const duelRef = ref(db, `duels/${duelId}`);
     const duelSnap = await get(duelRef);
 
     if (!duelSnap.exists()) throw new Error("Duel not found");
     const duel = duelSnap.val() as Duel;
 
-    // ✅ 2. Используем настройку из дуэли или дефолтную
     const requiredCount =
       duel.settings.weaponsCount || getDefaultDuelSettings().weaponsCount;
 
-    // Проверка: не выбрал ли уже пользователь оружие
     if (duel.weapons?.[userId]?.length) {
       throw new Error("Вы уже выбрали оружие");
     }
 
-    // ✅ 3. Сохраняем выбор пользователя
     const userWeaponsRef = ref(db, `duels/${duelId}/weapons/${userId}`);
     await set(userWeaponsRef, weaponIds);
 
-    // ✅ 4. Проверяем, выбрали ли оба игрока
-    // Берем актуальные данные: то что в базе + то что только что отправили (если это мы)
     const p1Count =
       duel.weapons?.[duel.player1]?.length ||
       (duel.player1 === userId ? weaponIds.length : 0);
@@ -514,11 +537,10 @@ export const submitDuelWeapons = createAsyncThunk(
       duel.weapons?.[duel.player2]?.length ||
       (duel.player2 === userId ? weaponIds.length : 0);
 
-    // Если оба выбрали нужное количество — переводим в фазу боя
     if (p1Count >= requiredCount && p2Count >= requiredCount) {
       await update(duelRef, {
         status: "fighting",
-        currentTurn: duel.player1, // Ход в битве начинает Игрок 1
+        currentTurn: duel.player1,
         turnStartTime: Date.now(),
       });
     }
@@ -527,13 +549,13 @@ export const submitDuelWeapons = createAsyncThunk(
   },
 );
 
-// 🔄 Админ: Отменить последний выбор (бан или пик)
+// 🔄 Админ: Отменить последний выбор
 export const adminUndoPick = createAsyncThunk(
   "duels/adminUndoPick",
   async ({
     duelId,
     playerId,
-    moveType, // 'ban' или 'pick'
+    moveType,
   }: {
     duelId: string;
     playerId: string;
@@ -541,7 +563,7 @@ export const adminUndoPick = createAsyncThunk(
   }) => {
     const duelRef = ref(db, `duels/${duelId}`);
     const duelSnap = await get(duelRef);
-    
+
     if (!duelSnap.exists()) throw new Error("Duel not found");
     const duel = duelSnap.val() as Duel;
 
@@ -549,16 +571,16 @@ export const adminUndoPick = createAsyncThunk(
     const currentList = duel.draft?.[path]?.[playerId] || [];
 
     if (currentList.length === 0) {
-      throw new Error(`У игрока нет ${moveType === 'ban' ? 'банов' : 'пиков'} для отмены`);
+      throw new Error(
+        `У игрока нет ${moveType === "ban" ? "банов" : "пиков"} для отмены`,
+      );
     }
 
-    // Удаляем последний элемент
     const newList = currentList.slice(0, -1);
 
-    // Возвращаем ход этому игроку (так как мы отменили его действие)
     await update(duelRef, {
       [`draft/${path}/${playerId}`]: newList,
-      currentTurn: playerId, // Ход возвращается тому, чей выбор отменили
+      currentTurn: playerId,
       turnStartTime: Date.now(),
     });
 
@@ -613,18 +635,15 @@ const duelsSlice = createSlice({
         state.status = "failed";
         state.error = action.error.message || "Ошибка отправки инвайта";
       })
-
       .addCase(acceptDuelInvite.fulfilled, (state, action) => {
         state.activeDuel = action.payload;
         state.status = "succeeded";
       })
-
       .addCase(declineDuelInvite.fulfilled, (state, action) => {
         state.receivedInvites = state.receivedInvites.filter(
           (inv) => inv.id !== action.payload,
         );
       })
-
       .addCase(fetchAllDuels.pending, (state) => {
         state.status = "loading";
       })
@@ -638,7 +657,6 @@ const duelsSlice = createSlice({
         state.status = "failed";
         state.error = action.error.message || "Ошибка загрузки дуэлей";
       })
-
       .addCase(fetchUserInvites.pending, (state) => {
         state.status = "loading";
       })
@@ -649,8 +667,6 @@ const duelsSlice = createSlice({
       .addCase(fetchUserInvites.rejected, (state, action) => {
         state.error = action.error.message || "Ошибка загрузки инвайтов";
       })
-
-      // ✅ makeDraftMove — работа с массивами
       .addCase(makeDraftMove.fulfilled, (state, action) => {
         if (
           state.activeDuel?.id === action.payload.duelId &&
@@ -659,12 +675,10 @@ const duelsSlice = createSlice({
           const path = action.payload.moveType === "ban" ? "bans" : "picks";
           const userId = action.payload.userId;
 
-          // ✅ Инициализируем массив, если нет
           if (!state.activeDuel.draft[path][userId]) {
             state.activeDuel.draft[path][userId] = [];
           }
 
-          // ✅ Работаем с массивом
           const draftArray = state.activeDuel.draft[path][userId] as string[];
           if (!draftArray.includes(action.payload.characterId)) {
             draftArray.push(action.payload.characterId);
@@ -673,7 +687,6 @@ const duelsSlice = createSlice({
           state.activeDuel.currentTurn = action.payload.nextPlayer;
         }
       })
-
       .addCase(submitDuelResult.fulfilled, (state, action) => {
         if (state.activeDuel?.id === action.payload.duelId) {
           if (!state.activeDuel.results) {
