@@ -44,7 +44,6 @@ export default function DuelPage({ params }: PageProps) {
   );
   const isAdmin = userRole === "admin";
 
-  // Начальная фаза
   const getInitialPhase = () => {
     if (!duel) return "drafting";
     if (duel.status === "finished") return "fighting";
@@ -54,11 +53,10 @@ export default function DuelPage({ params }: PageProps) {
   const [viewPhase, setViewPhase] = useState<string>(getInitialPhase());
   const prevDuelDataRef = useRef<any>(null);
 
-  // ✅ 1. ПОДПИСКА НА ДАННЫЕ (Только чтение и обновление Redux)
+  // ✅ 1. ПОДПИСКА НА ДАННЫЕ
   useEffect(() => {
     if (!user?.uid || !duelId) return;
 
-    // Слушаем только КОНКРЕТНУЮ дуэль
     const currentDuelRef = ref(db, `duels/${duelId}`);
 
     const unsubscribe = onValue(currentDuelRef, (snapshot) => {
@@ -75,7 +73,6 @@ export default function DuelPage({ params }: PageProps) {
       if (currentDataStr !== prevDuelDataRef.current) {
         dispatch(setActiveDuel(currentDuelWithId));
         prevDuelDataRef.current = currentDataStr;
-        // Синхронизацию фаз вынесли в отдельный эффект ниже
       }
     });
 
@@ -84,35 +81,30 @@ export default function DuelPage({ params }: PageProps) {
     };
   }, [dispatch, user?.uid, duelId]);
 
-  // ✅ 2. СИНХРОНИЗАЦИЯ ФАЗЫ (Автоматическое переключение при изменении статуса)
+  // ✅ 2. ИСПРАВЛЕННАЯ СИНХРОНИЗАЦИЯ ФАЗЫ
   useEffect(() => {
     if (!duel) return;
 
-    // Порядок фаз для сравнения
-    const phaseOrder: Record<string, number> = { 
-      drafting: 0, 
-      weapons: 1, 
-      fighting: 2, 
-      finished: 3 
+    const phaseOrder: Record<string, number> = {
+      drafting: 0,
+      weapons: 1,
+      fighting: 2,
+      finished: 3,
     };
 
     const currentIndex = phaseOrder[viewPhase] ?? -1;
     const realIndex = phaseOrder[duel.status] ?? -1;
 
-    // Если дуэль завершена, всегда переключаем на результаты
-    if (duel.status === 'finished') {
-      if (viewPhase !== 'fighting') setViewPhase('fighting');
+    // Если дуэль завершена, всегда показываем результаты (fighting)
+    if (duel.status === "finished") {
+      if (viewPhase !== "fighting") setViewPhase("fighting");
       return;
     }
 
-    // Если реальная фаза ушла вперед или назад относительно текущей вьюхи — синхронизируемся
-    // Это гарантирует, что мы всегда видим актуальный статус, если не ушли в архив намеренно
-    // Но так как у нас нет флага "архив", мы просто следуем за сервером, если фаза изменилась
-    if (currentIndex !== realIndex) {
+    if (realIndex > currentIndex) {
       setViewPhase(duel.status);
     }
-    
-  }, [duel?.status, duel?.id, viewPhase]);
+  }, [duel?.status, duel?.id]); 
 
   const handleStatusChange = async (newStatus: string) => {
     if (!duel || !isAdmin) return;
@@ -147,8 +139,8 @@ export default function DuelPage({ params }: PageProps) {
   }
 
   const currentViewPhase = viewPhase;
-  
-  // ✅ ИСПРАВЛЕНИЕ: Live только если фаза просмотра совпадает с реальной фазой в базе
+
+  // Live только если фаза просмотра совпадает с реальной фазой в базе
   const isLive = currentViewPhase === duel.status;
 
   const isReadOnly =
@@ -183,14 +175,14 @@ export default function DuelPage({ params }: PageProps) {
                         : `Назначить в ${phase}`}
                     </button>
                   ))}
-                  {duel.status === 'finished' && (
-                     <button
-                     onClick={() => handleStatusChange('fighting')}
-                     className="duel-admin__btn"
-                     style={{ background: "#ef4444" }}
-                   >
-                     ↩️ Вернуть в бой
-                   </button>
+                  {duel.status === "finished" && (
+                    <button
+                      onClick={() => handleStatusChange("fighting")}
+                      className="duel-admin__btn"
+                      style={{ background: "#ef4444" }}
+                    >
+                      ↩️ Вернуть в бой
+                    </button>
                   )}
                 </div>
               </div>
@@ -236,7 +228,8 @@ export default function DuelPage({ params }: PageProps) {
               />
             )}
 
-            {(currentViewPhase === "fighting" || duel.status === "finished") && (
+            {(currentViewPhase === "fighting" ||
+              duel.status === "finished") && (
               <BossFightResults
                 duel={duel}
                 currentUserId={user?.uid || "spectator"}
