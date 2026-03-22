@@ -17,20 +17,14 @@ import {
 import { Character, Weapon } from "@/lib/types";
 import { fetchCharacters } from "@/lib/slices/charactersSlice";
 import { fetchWeapons } from "@/lib/slices/weaponsSlice";
-import { fetchAdminSettings } from "@/lib/slices/adminSettingsSlice"; // ✅ Импортируем настройки
+import { fetchAdminSettings } from "@/lib/slices/adminSettingsSlice";
 
 type UserItem = Character | Weapon;
 
 // Типы для фильтров
 type RarityFilter = "" | "4" | "5" | "6";
 type ConstFilter = "" | "0" | "1" | "2" | "3" | "4" | "5" | "6";
-type WeaponTypeFilter =
-  | ""
-  | "sword"
-  | "handcannon"
-  | "greatsword"
-  | "polearm"
-  | "artsUnit";
+type WeaponTypeFilter = "" | "sword" | "handcannon" | "greatsword" | "polearm" | "artsUnit";
 
 export default function UserPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -40,9 +34,10 @@ export default function UserPage() {
   const userWeapons = useSelector(selectUserWeapons);
   const status = useSelector((state: RootState) => state.userItems.status);
 
-  // ✅ Получаем настройки лимита
+  // ✅ Получаем настройки лимитов (Персонажи и Оружие)
   const adminSettings = useSelector((state: RootState) => state.adminSettings);
   const maxTeamCost = adminSettings.maxTeamCost;
+  const maxWeaponCost = adminSettings.maxWeaponCost ?? adminSettings.maxTeamCost; // Фоллбэк на общий лимит, если отдельный не задан
 
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -59,41 +54,33 @@ export default function UserPage() {
       dispatch(fetchCharacters());
       dispatch(fetchWeapons());
       dispatch(fetchUserItemIds(user.uid));
-      dispatch(fetchAdminSettings()); // ✅ Загружаем настройки лимита
+      dispatch(fetchAdminSettings());
     }
   }, [dispatch, user]);
 
   // ✅ Функция расчета веса предмета с учетом costTable
   const get_item_cost = (item: Character | Weapon) => {
     const c = item.constellation ?? 0;
-    // Если есть таблица стоимостей и значение для этой консты определено - берем его
     if (item.costTable && item.costTable[c] !== undefined) {
       return item.costTable[c];
     }
-    // Иначе базовая формула: C + 1
     return c + 1;
   };
 
   const filteredCharacters = useMemo(() => {
     return userCharacters.filter((char) => {
-      const matchesSearch = char.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+      const matchesSearch = char.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesRarity = !charRarity || String(char.rarity) === charRarity;
-      const matchesConst =
-        !charConst || String(char.constellation ?? 0) === charConst;
+      const matchesConst = !charConst || String(char.constellation ?? 0) === charConst;
       return matchesSearch && matchesRarity && matchesConst;
     });
   }, [userCharacters, searchQuery, charRarity, charConst]);
 
   const filteredWeapons = useMemo(() => {
     return userWeapons.filter((weapon) => {
-      const matchesSearch = weapon.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+      const matchesSearch = weapon.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesRarity = !wepRarity || String(weapon.rarity) === wepRarity;
-      const matchesConst =
-        !wepConst || String(weapon.constellation ?? 0) === wepConst;
+      const matchesConst = !wepConst || String(weapon.constellation ?? 0) === wepConst;
       const matchesType = !wepType || weapon.type === wepType;
       return matchesSearch && matchesRarity && matchesConst && matchesType;
     });
@@ -101,32 +88,28 @@ export default function UserPage() {
 
   // ✅ Подсчет общей стоимости пула персонажей
   const currentCharPoolCost = useMemo(() => {
-    return filteredCharacters.reduce(
-      (sum, char) => sum + get_item_cost(char),
-      0,
-    );
+    return filteredCharacters.reduce((sum, char) => sum + get_item_cost(char), 0);
   }, [filteredCharacters]);
 
-  const handleRemoveItem = async (
-    type: "character" | "weapon",
-    item: UserItem,
-  ) => {
+  // ✅ Подсчет общей стоимости пула оружия
+  const currentWepPoolCost = useMemo(() => {
+    return filteredWeapons.reduce((sum, weapon) => sum + get_item_cost(weapon), 0);
+  }, [filteredWeapons]);
+
+  const handleRemoveItem = async (type: "character" | "weapon", item: UserItem) => {
     if (!user || !item.id) {
       toast.error("❌ Ошибка: у предмета нет ID");
       return;
     }
     try {
-      await dispatch(
-        removeUserItemId({ userId: user.uid, type, itemId: item.id }),
-      ).unwrap();
+      await dispatch(removeUserItemId({ userId: user.uid, type, itemId: item.id })).unwrap();
       toast.success(`${item.name} удалён из коллекции`);
     } catch (error) {
       toast.error("❌ Ошибка удаления");
     }
   };
 
-  const handleAddCharacters = () =>
-    dispatch(openModal({ type: "chooseCharacters" }));
+  const handleAddCharacters = () => dispatch(openModal({ type: "chooseCharacters" }));
   const handleAddWeapons = () => dispatch(openModal({ type: "chooseWeapons" }));
 
   const resetFilters = () => {
@@ -139,160 +122,53 @@ export default function UserPage() {
   };
 
   if (!user || status === "loading") {
-    return (
-      <>
-        <Header />
-        <Loading />
-      </>
-    );
+    return (<><Header /><Loading /></>);
   }
 
   if (status === "failed") {
-    return (
-      <>
-        <Header />
-        <main className="min-h-screen flex items-center justify-center">
-          <div className="text-red-600">❌ Ошибка загрузки данных</div>
-        </main>
-      </>
-    );
+    return (<><Header /><main className="min-h-screen flex items-center justify-center"><div className="text-red-600">❌ Ошибка загрузки данных</div></main></>);
   }
 
-  // Проверка превышения лимита
-  const isOverLimit = currentCharPoolCost > maxTeamCost;
+  const isCharOverLimit = currentCharPoolCost > maxTeamCost;
+  const isWepOverLimit = currentWepPoolCost > maxWeaponCost;
 
   return (
     <>
       <Header />
       <main className="user">
         <div className="container">
+          
           {/* === ПАНЕЛЬ ФИЛЬТРОВ === */}
-          <div
-            className="filters-panel"
-            style={{
-              marginBottom: "2rem",
-              padding: "1rem",
-              background: "#1e293b",
-              borderRadius: "8px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                gap: "1rem",
-                marginBottom: "1rem",
-                flexWrap: "wrap",
-              }}
-            >
+          <div className="filters-panel" style={{ marginBottom: '2rem', padding: '1rem', background: '#1e293b', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
               <input
                 type="text"
                 placeholder="🔍 Поиск по имени..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  flex: 1,
-                  minWidth: "200px",
-                  padding: "0.5rem",
-                  borderRadius: "4px",
-                  border: "1px solid #475569",
-                  background: "#0f172a",
-                  color: "white",
-                }}
+                style={{ flex: 1, minWidth: '200px', padding: '0.5rem', borderRadius: '4px', border: '1px solid #475569', background: '#0f172a', color: 'white' }}
               />
-              <button
-                onClick={resetFilters}
-                style={{
-                  padding: "0.5rem 1rem",
-                  background: "#ef4444",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
+              <button onClick={resetFilters} style={{ padding: '0.5rem 1rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
                 Сбросить
               </button>
             </div>
-            {/* ... (остальные фильтры без изменений) ... */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                gap: "1rem",
-              }}
-            >
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
               <div>
-                <label style={{ fontSize: "0.8rem", color: "#94a3b8" }}>
-                  Редкость (Все)
-                </label>
-                <select
-                  value={charRarity}
-                  onChange={(e) =>
-                    setCharRarity(e.target.value as RarityFilter)
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "0.4rem",
-                    background: "#0f172a",
-                    color: "white",
-                    border: "1px solid #475569",
-                    borderRadius: "4px",
-                  }}
-                >
-                  <option value="">Любая</option>
-                  <option value="4">4 ★</option>
-                  <option value="5">5 ★</option>
-                  <option value="6">6 ★</option>
+                <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Редкость (Все)</label>
+                <select value={charRarity} onChange={(e) => setCharRarity(e.target.value as RarityFilter)} style={{ width: '100%', padding: '0.4rem', background: '#0f172a', color: 'white', border: '1px solid #475569', borderRadius: '4px' }}>
+                  <option value="">Любая</option><option value="4">4 ★</option><option value="5">5 ★</option><option value="6">6 ★</option>
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: "0.8rem", color: "#94a3b8" }}>
-                  Конста (Все)
-                </label>
-                <select
-                  value={charConst}
-                  onChange={(e) => setCharConst(e.target.value as ConstFilter)}
-                  style={{
-                    width: "100%",
-                    padding: "0.4rem",
-                    background: "#0f172a",
-                    color: "white",
-                    border: "1px solid #475569",
-                    borderRadius: "4px",
-                  }}
-                >
-                  <option value="">Любая</option>
-                  {[0, 1, 2, 3, 4, 5, 6].map((n) => (
-                    <option key={n} value={String(n)}>
-                      C{n}
-                    </option>
-                  ))}
+                <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Конста (Все)</label>
+                <select value={charConst} onChange={(e) => setCharConst(e.target.value as ConstFilter)} style={{ width: '100%', padding: '0.4rem', background: '#0f172a', color: 'white', border: '1px solid #475569', borderRadius: '4px' }}>
+                  <option value="">Любая</option>{[0,1,2,3,4,5,6].map(n => <option key={n} value={String(n)}>C{n}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: "0.8rem", color: "#94a3b8" }}>
-                  Тип оружия
-                </label>
-                <select
-                  value={wepType}
-                  onChange={(e) =>
-                    setWepType(e.target.value as WeaponTypeFilter)
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "0.4rem",
-                    background: "#0f172a",
-                    color: "white",
-                    border: "1px solid #475569",
-                    borderRadius: "4px",
-                  }}
-                >
-                  <option value="">Любой</option>
-                  <option value="sword">Меч</option>
-                  <option value="handcannon">Пистолеты</option>
-                  <option value="greatsword">Двуручный</option>
-                  <option value="polearm">Копье</option>
-                  <option value="artsUnit">Катализатор</option>
+                <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Тип оружия</label>
+                <select value={wepType} onChange={(e) => setWepType(e.target.value as WeaponTypeFilter)} style={{ width: '100%', padding: '0.4rem', background: '#0f172a', color: 'white', border: '1px solid #475569', borderRadius: '4px' }}>
+                  <option value="">Любой</option><option value="sword">Меч</option><option value="handcannon">Пистолеты</option><option value="greatsword">Двуручный</option><option value="polearm">Копье</option><option value="artsUnit">Катализатор</option>
                 </select>
               </div>
             </div>
@@ -300,59 +176,37 @@ export default function UserPage() {
 
           {/* === ПЕРСОНАЖИ === */}
           <section className="section">
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "1rem",
-              }}
-            >
-              <h2 className="h2-common">
-                Мои персонажи ({filteredCharacters.length})
-              </h2>
-
-              {/* ✅ БЛОК СО СТОИМОСТЬЮ ПУЛА */}
-              <div
-                style={{
-                  background: isOverLimit ? "#450a0a" : "#1e293b",
-                  border: `1px solid ${isOverLimit ? "#ef4444" : "#475569"}`,
-                  padding: "0.5rem 1rem",
-                  borderRadius: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                }}
-              >
-                <span style={{ fontSize: "0.9rem", color: "#94a3b8" }}>
-                  Стоимость пула:
-                </span>
-                <span
-                  style={{
-                    fontSize: "1.1rem",
-                    fontWeight: "bold",
-                    color: isOverLimit ? "#ef4444" : "#fbbf24",
-                  }}
-                >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <h2 className="h2-common">Мои персонажи ({filteredCharacters.length})</h2>
+              
+              {/* БЛОК СО СТОИМОСТЬЮ ПУЛА ПЕРСОНАЖЕЙ */}
+              <div style={{ 
+                background: isCharOverLimit ? '#450a0a' : '#1e293b', 
+                border: `1px solid ${isCharOverLimit ? '#ef4444' : '#475569'}`,
+                padding: '0.5rem 1rem', 
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Стоимость пула:</span>
+                <span style={{ 
+                  fontSize: '1.1rem', 
+                  fontWeight: 'bold', 
+                  color: isCharOverLimit ? '#ef4444' : '#fbbf24' 
+                }}>
                   {currentCharPoolCost} / {maxTeamCost}
                 </span>
-                {isOverLimit && <span style={{ fontSize: "1.2rem" }}>⚠️</span>}
+                {isCharOverLimit && <span style={{fontSize: '1.2rem'}}>⚠️</span>}
               </div>
             </div>
 
-            <button
-              onClick={handleAddCharacters}
-              className="user__btn-add"
-              style={{ marginTop: "1rem" }}
-            >
+            <button onClick={handleAddCharacters} className="user__btn-add" style={{ marginTop: '1rem' }}>
               Добавить персонажа
             </button>
 
             {filteredCharacters.length === 0 ? (
-              <p className="user__item-null">
-                Нет персонажей по выбранным фильтрам
-              </p>
+              <p className="user__item-null">Нет персонажей по выбранным фильтрам</p>
             ) : (
               <ul className="user__list">
                 {filteredCharacters.map((char) => {
@@ -360,39 +214,16 @@ export default function UserPage() {
                   return (
                     <li key={char.id} className="user__item">
                       <ItemCard item={char} />
-
-                      {/* Отображение веса карточки (опционально) */}
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: "4px",
-                          right: "4px",
-                          background: "rgba(0,0,0,0.8)",
-                          padding: "2px 6px",
-                          borderRadius: "4px",
-                          fontSize: "0.75rem",
-                          color: "#fbbf24",
-                          fontWeight: "bold",
-                        }}
-                      >
+                      
+                      {/* Бейдж веса персонажа */}
+                      <div style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.8)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', color: '#fbbf24', fontWeight: 'bold' }}>
                         ⚖️ {charCost}
                       </div>
 
                       {isEditMode && (
                         <div className="user__item-actions">
                           <button
-                            onClick={() =>
-                              dispatch(
-                                openModal({
-                                  type: "itemEdit",
-                                  data: {
-                                    itemType: "character",
-                                    itemId: char.id,
-                                  },
-                                  isUserMode: true,
-                                }),
-                              )
-                            }
+                            onClick={() => dispatch(openModal({ type: "itemEdit", data: { itemType: "character", itemId: char.id }, isUserMode: true }))}
                             className="user__btn-edit-const"
                             title="Изменить консту"
                           >
@@ -416,48 +247,71 @@ export default function UserPage() {
 
           {/* === ОРУЖИЕ === */}
           <section className="section">
-            <h2 className="h2-common">Моё оружие ({filteredWeapons.length})</h2>
-            <button onClick={handleAddWeapons} className="user__btn-add">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <h2 className="h2-common">Моё оружие ({filteredWeapons.length})</h2>
+              
+              {/* ✅ БЛОК СО СТОИМОСТЬЮ ПУЛА ОРУЖИЯ */}
+              <div style={{ 
+                background: isWepOverLimit ? '#450a0a' : '#1e293b', 
+                border: `1px solid ${isWepOverLimit ? '#ef4444' : '#475569'}`,
+                padding: '0.5rem 1rem', 
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Стоимость пула:</span>
+                <span style={{ 
+                  fontSize: '1.1rem', 
+                  fontWeight: 'bold', 
+                  color: isWepOverLimit ? '#ef4444' : '#fbbf24' 
+                }}>
+                  {currentWepPoolCost} / {maxWeaponCost}
+                </span>
+                {isWepOverLimit && <span style={{fontSize: '1.2rem'}}>⚠️</span>}
+              </div>
+            </div>
+
+            <button onClick={handleAddWeapons} className="user__btn-add" style={{ marginTop: '1rem' }}>
               Добавить оружие
             </button>
 
             {filteredWeapons.length === 0 ? (
-              <p className="user__item-null">
-                Нет оружия по выбранным фильтрам
-              </p>
+              <p className="user__item-null">Нет оружия по выбранным фильтрам</p>
             ) : (
               <ul className="user__list">
-                {filteredWeapons.map((weapon) => (
-                  <li key={weapon.id} className="user__item">
-                    <ItemCard item={weapon} />
-                    {isEditMode && (
-                      <div className="user__item-actions">
-                        <button
-                          onClick={() =>
-                            dispatch(
-                              openModal({
-                                type: "itemEdit",
-                                data: { itemType: "weapon", itemId: weapon.id },
-                                isUserMode: true,
-                              }),
-                            )
-                          }
-                          className="user__btn-edit-const"
-                          title="Изменить консту"
-                        >
-                          ✦ C{weapon.constellation || 0}
-                        </button>
-                        <button
-                          onClick={() => handleRemoveItem("weapon", weapon)}
-                          className="user__btn-dell"
-                          title="Удалить"
-                        >
-                          ❌
-                        </button>
+                {filteredWeapons.map((weapon) => {
+                  const wepCost = get_item_cost(weapon);
+                  return (
+                    <li key={weapon.id} className="user__item">
+                      <ItemCard item={weapon} />
+                      
+                      {/* ✅ Бейдж веса оружия */}
+                      <div style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.8)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', color: '#fbbf24', fontWeight: 'bold' }}>
+                        ⚖️ {wepCost}
                       </div>
-                    )}
-                  </li>
-                ))}
+
+                      {isEditMode && (
+                        <div className="user__item-actions">
+                          <button
+                            onClick={() => dispatch(openModal({ type: "itemEdit", data: { itemType: "weapon", itemId: weapon.id }, isUserMode: true }))}
+                            className="user__btn-edit-const"
+                            title="Изменить консту"
+                          >
+                            ✦ C{weapon.constellation || 0}
+                          </button>
+                          <button
+                            onClick={() => handleRemoveItem("weapon", weapon)}
+                            className="user__btn-dell"
+                            title="Удалить"
+                          >
+                            ❌
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>

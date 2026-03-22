@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux"; // ✅ Убедись, что useSelector импортирован
+import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/lib/store";
 import {
   adminUndoPick,
@@ -11,6 +11,7 @@ import {
 } from "@/lib/slices/duelsSlice";
 import { fetchCharacters } from "@/lib/slices/charactersSlice";
 import { fetchAllUsers } from "@/lib/slices/usersSlice";
+import { fetchAdminSettings } from "@/lib/slices/adminSettingsSlice"; // ✅ Явно импортируем
 import toast from "react-hot-toast";
 import { Duel, Character, Weapon } from "@/lib/types";
 import { WeaponSelector } from "./WeaponSelection";
@@ -38,10 +39,8 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
 
   const userRole = useSelector((state: RootState) => state.auth.user?.role);
   const isAdmin = userRole === "admin";
-  
-  // ✅ Получаем максимальный лимит стоимости из настроек
-  const maxTeamCost = useSelector((state: RootState) => state.adminSettings.maxTeamCost);
 
+  const adminSettings = useSelector((state: RootState) => state.adminSettings);
   const allCharactersGlobal = useSelector(
     (state: RootState) => state.characters.items,
   );
@@ -49,6 +48,13 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
     (state: RootState) => state.weapons.items,
   );
   const allUsers = useSelector((state: RootState) => state.users?.list || []);
+
+  // ✅ 1. ЯВНАЯ ЗАГРУЗКА НАСТРОЕК ПРИ МОНТИРОВАНИИ
+  useEffect(() => {
+    if (adminSettings.status === "idle") {
+      dispatch(fetchAdminSettings());
+    }
+  }, [dispatch, adminSettings.status]);
 
   useEffect(() => {
     if (!allUsers || allUsers.length === 0) {
@@ -60,6 +66,9 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
     if (!allCharactersGlobal || allCharactersGlobal.length === 0) {
       dispatch(fetchCharacters());
     }
+    // Оружие обычно грузится внутри WeaponSelector, но для расчета веса нам нужно оно здесь
+    // Убедись, что где-то выше (в layout или page) вызывается fetchWeapons(),
+    // либо добавь dispatch(fetchWeapons()) здесь, если нужно.
   }, [dispatch, allCharactersGlobal]);
 
   const isPlayer1 = duel.player1 === currentUserId;
@@ -67,37 +76,44 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
 
   const p1Picks = duel.draft?.picks?.[duel.player1]?.length || 0;
   const p2Picks = duel.draft?.picks?.[duel.player2]?.length || 0;
-  const isDraftFinished = p1Picks + p2Picks >= (duel.settings.picksCount || 4) * 2;
+  const isDraftFinished =
+    p1Picks + p2Picks >= (duel.settings.picksCount || 4) * 2;
 
-  const player1Profile = (allUsers.find((u) => u.uid === duel.player1) as UserProfile | undefined);
-  const player2Profile = (allUsers.find((u) => u.uid === duel.player2) as UserProfile | undefined);
+  const player1Profile = allUsers.find((u) => u.uid === duel.player1) as
+    | UserProfile
+    | undefined;
+  const player2Profile = allUsers.find((u) => u.uid === duel.player2) as
+    | UserProfile
+    | undefined;
 
-  const getProfileItemIds = (profile: UserProfile | undefined, field: 'characters' | 'weapons') => {
+  const getProfileItemIds = (
+    profile: UserProfile | undefined,
+    field: "characters" | "weapons",
+  ) => {
     if (!profile || !profile[field]) return [];
     return Object.keys(profile[field]);
   };
 
-  const p1CharIds = new Set(getProfileItemIds(player1Profile, 'characters'));
-  const p2CharIds = new Set(getProfileItemIds(player2Profile, 'characters'));
-  
-  const p1WeaponIds = new Set(getProfileItemIds(player1Profile, 'weapons'));
-  const p2WeaponIds = new Set(getProfileItemIds(player2Profile, 'weapons'));
+  const p1CharIds = new Set(getProfileItemIds(player1Profile, "characters"));
+  const p2CharIds = new Set(getProfileItemIds(player2Profile, "characters"));
 
-  const player1Characters = useMemo(() => 
-    allCharactersGlobal.filter((c: Character) => c.id && p1CharIds.has(c.id)),
-  [allCharactersGlobal, p1CharIds]);
+  const p1WeaponIds = new Set(getProfileItemIds(player1Profile, "weapons"));
+  const p2WeaponIds = new Set(getProfileItemIds(player2Profile, "weapons"));
 
-  const player2Characters = useMemo(() => 
-    allCharactersGlobal.filter((c: Character) => c.id && p2CharIds.has(c.id)),
-  [allCharactersGlobal, p2CharIds]);
+  const player1Characters = useMemo(
+    () =>
+      allCharactersGlobal.filter((c: Character) => c.id && p1CharIds.has(c.id)),
+    [allCharactersGlobal, p1CharIds],
+  );
 
-  const player1Weapons = useMemo(() => 
-    allWeaponsGlobal.filter((w: Weapon) => w.id && p1WeaponIds.has(w.id)),
-  [allWeaponsGlobal, p1WeaponIds]);
+  const player2Characters = useMemo(
+    () =>
+      allCharactersGlobal.filter((c: Character) => c.id && p2CharIds.has(c.id)),
+    [allCharactersGlobal, p2CharIds],
+  );
 
-  const player2Weapons = useMemo(() => 
-    allWeaponsGlobal.filter((w: Weapon) => w.id && p2WeaponIds.has(w.id)),
-  [allWeaponsGlobal, p2WeaponIds]);
+  const p1WeaponIdList = Array.from(p1WeaponIds);
+  const p2WeaponIdList = Array.from(p2WeaponIds);
 
   const userNamesMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -114,23 +130,69 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
   const player1Name = userNamesMap.get(duel.player1) || "Игрок 1";
   const player2Name = userNamesMap.get(duel.player2) || "Игрок 2";
 
-  // ✅ ФУНКЦИЯ РАСЧЕТА ВЕСА С УЧЕТОМ COST TABLE
+  // ✅ ФУНКЦИЯ РАСЧЕТА ВЕСА
   const get_item_cost = (item: Character | Weapon) => {
+    if (!item) return 0;
     const c = item.constellation ?? 0;
-    if (item.costTable && item.costTable[c] !== undefined) {
+    if (item.costTable && typeof item.costTable[c] === "number") {
       return item.costTable[c];
     }
     return c + 1;
   };
 
-  // ✅ ПОДСЧЕТ ТЕКУЩЕЙ СТОИМОСТИ ПУЛА
+  // ✅ ПОДСЧЕТ СТОИМОСТИ ПЕРСОНАЖЕЙ
   const p1CurrentCost = useMemo(() => {
-    return player1Characters.reduce((sum, char) => sum + get_item_cost(char), 0);
+    return player1Characters.reduce(
+      (sum, char) => sum + get_item_cost(char),
+      0,
+    );
   }, [player1Characters]);
 
   const p2CurrentCost = useMemo(() => {
-    return player2Characters.reduce((sum, char) => sum + get_item_cost(char), 0);
+    return player2Characters.reduce(
+      (sum, char) => sum + get_item_cost(char),
+      0,
+    );
   }, [player2Characters]);
+
+  // ✅ ПОДСЧЕТ СТОИМОСТИ ОРУЖИЯ + ОТЛАДКА
+  const p1CurrentWeaponCost = useMemo(() => {
+    if (!p1WeaponIdList.length) return 0;
+    if (!allWeaponsGlobal.length) {
+      return 0;
+    }
+
+    let total = 0;
+
+    p1WeaponIdList.forEach((wId) => {
+      const weapon = allWeaponsGlobal.find((w) => w.id === wId);
+      if (weapon) {
+        const cost = get_item_cost(weapon);
+        total += cost;
+      }
+    });
+
+    return total;
+  }, [p1WeaponIdList, allWeaponsGlobal]);
+
+  const p2CurrentWeaponCost = useMemo(() => {
+    if (!p2WeaponIdList.length) return 0;
+    if (!allWeaponsGlobal.length) return 0;
+
+    return p2WeaponIdList.reduce((sum, wId) => {
+      const weapon = allWeaponsGlobal.find((w) => w.id === wId);
+      return sum + (weapon ? get_item_cost(weapon) : 0);
+    }, 0);
+  }, [p2WeaponIdList, allWeaponsGlobal]);
+
+  // ✅ ЛИМИТЫ (с защитой от undefined)
+  const maxTeamCost = adminSettings.maxTeamCost || 10;
+  const maxWeaponCost =
+    adminSettings.maxWeaponCost ?? adminSettings.maxTeamCost ?? 10;
+
+  // Отладка настроек
+  useEffect(() => {
+  }, [adminSettings]);
 
   const handleCharAction = async (charId: string, action: "ban" | "pick") => {
     if (!canInteract || duel.currentTurn !== currentUserId) {
@@ -187,7 +249,8 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
       return;
     }
     try {
-      const nextPlayer = duel.player1 === currentUserId ? duel.player2 : duel.player1;
+      const nextPlayer =
+        duel.player1 === currentUserId ? duel.player2 : duel.player1;
       await update(ref(db, `duels/${duel.id}`), {
         [`draft/banSkipped/${currentUserId}`]: true,
         currentTurn: nextPlayer,
@@ -199,33 +262,39 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
     }
   };
 
-  // Компонент индикатора стоимости (чтобы не дублировать код)
-  const CostIndicator = ({ current, max, isMyColumn }: { current: number, max: number, isMyColumn: boolean }) => {
+  const CostIndicator = ({
+    current,
+    max,
+    isMyColumn,
+    label,
+  }: {
+    current: number;
+    max: number;
+    isMyColumn: boolean;
+    label?: string;
+  }) => {
     const isOver = current > max;
     return (
-      <div 
-        className="draft-cost-indicator"
+      <div
         style={{
-          position: 'absolute',
-          top: '-10px',
-          right: '10px',
-          background: isOver ? '#450a0a' : '#1e293b',
-          border: `1px solid ${isOver ? '#ef4444' : (isMyColumn ? '#fbbf24' : '#475569')}`,
-          padding: '4px 12px',
-          borderRadius: '20px',
-          fontSize: '0.85rem',
-          fontWeight: 'bold',
-          color: isOver ? '#ef4444' : (isMyColumn ? '#fbbf24' : '#94a3b8'),
-          zIndex: 10,
-          boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px'
+          background: isOver ? "#450a0a" : "#1e293b",
+          border: `1px solid ${isOver ? "#ef4444" : isMyColumn ? "#fbbf24" : "#475569"}`,
+          padding: "4px 10px",
+          borderRadius: "12px",
+          fontSize: "0.8rem",
+          fontWeight: "bold",
+          color: isOver ? "#ef4444" : isMyColumn ? "#fbbf24" : "#94a3b8",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "6px",
+          whiteSpace: "nowrap",
         }}
-        title={isOver ? "Превышен лимит стоимости!" : "Текущая стоимость пула"}
+        title={label || (isOver ? "Превышен лимит!" : "Текущая стоимость")}
       >
         <span>⚖️</span>
-        <span>{current} / {max}</span>
+        <span>
+          {current} / {max}
+        </span>
         {isOver && <span>⚠️</span>}
       </div>
     );
@@ -236,11 +305,26 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
       <h2 className="draft-phase__title">Фаза драфта</h2>
 
       <div className="draft-phase__grid">
-        {/* ЛЕВАЯ КОЛОНКА (Игрок 1) */}
-        <div className={`column ${isPlayer1 ? "me" : "opponent"}`} style={{ position: 'relative' }}>
-          
-          {/* ✅ ИНДИКАТОР СТОИМОСТИ ДЛЯ ИГРОКА 1 */}
-          <CostIndicator current={p1CurrentCost} max={maxTeamCost} isMyColumn={isPlayer1} />
+        {/* ЛЕВАЯ КОЛОНКА */}
+        <div
+          className={`column ${isPlayer1 ? "me" : "opponent"}`}
+          style={{ position: "relative" }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "-10px",
+              right: "10px",
+              zIndex: 10,
+            }}
+          >
+            <CostIndicator
+              current={p1CurrentCost}
+              max={maxTeamCost}
+              isMyColumn={isPlayer1}
+              label="Стоимость персонажей"
+            />
+          </div>
 
           <h3 className="draft-phase__h3">{player1Name}</h3>
 
@@ -249,8 +333,8 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
               duel={duel}
               playerId={duel.player1}
               currentUserId={currentUserId}
-              isMyTurn={isDraftFinished ? false : (isMyTurn && isPlayer1)} 
-              canInteract={canInteract && !isDraftFinished} 
+              isMyTurn={isDraftFinished ? false : isMyTurn && isPlayer1}
+              canInteract={canInteract && !isDraftFinished}
               allCharacters={player1Characters}
               playerProfile={player1Profile}
               onAction={handleCharAction}
@@ -261,17 +345,38 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
           </div>
 
           {isDraftFinished && (
-            <div className="weapon-section-wrapper">
-              <h4 className="section-subtitle">⚔️ Выбор оружия</h4>
+            <div
+              className="weapon-section-wrapper"
+              style={{ position: "relative", marginTop: "1.5rem" }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                <h4 className="section-subtitle" style={{ margin: 0 }}>
+                  ⚔️ Выбор оружия
+                </h4>
+                <CostIndicator
+                  current={p1CurrentWeaponCost}
+                  max={maxWeaponCost}
+                  isMyColumn={isPlayer1}
+                  label="Стоимость оружия"
+                />
+              </div>
+
               {isReadOnly ? (
-                 <WeaponSelector
+                <WeaponSelector
                   duel={duel}
                   playerId={duel.player1}
                   currentUserId={currentUserId}
                   isMyColumn={isPlayer1}
                   canInteract={false}
                   onSubmit={() => {}}
-                  myWeaponIds={Array.from(p1WeaponIds)}
+                  myWeaponIds={p1WeaponIdList}
                   playerProfile={player1Profile}
                 />
               ) : (
@@ -282,7 +387,7 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
                   isMyColumn={isPlayer1}
                   canInteract={canInteract}
                   onSubmit={handleWeaponSubmit}
-                  myWeaponIds={Array.from(p1WeaponIds)}
+                  myWeaponIds={p1WeaponIdList}
                   playerProfile={player1Profile}
                 />
               )}
@@ -290,11 +395,26 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
           )}
         </div>
 
-        {/* ПРАВАЯ КОЛОНКА (Игрок 2) */}
-        <div className={`column ${!isPlayer1 ? "me" : "opponent"}`} style={{ position: 'relative' }}>
-          
-          {/* ✅ ИНДИКАТОР СТОИМОСТИ ДЛЯ ИГРОКА 2 */}
-          <CostIndicator current={p2CurrentCost} max={maxTeamCost} isMyColumn={!isPlayer1} />
+        {/* ПРАВАЯ КОЛОНКА */}
+        <div
+          className={`column ${!isPlayer1 ? "me" : "opponent"}`}
+          style={{ position: "relative" }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "-10px",
+              right: "10px",
+              zIndex: 10,
+            }}
+          >
+            <CostIndicator
+              current={p2CurrentCost}
+              max={maxTeamCost}
+              isMyColumn={!isPlayer1}
+              label="Стоимость персонажей"
+            />
+          </div>
 
           <h3 className="draft-phase__h3">{player2Name}</h3>
 
@@ -303,7 +423,7 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
               duel={duel}
               playerId={duel.player2}
               currentUserId={currentUserId}
-              isMyTurn={isDraftFinished ? false : (isMyTurn && !isPlayer1)}
+              isMyTurn={isDraftFinished ? false : isMyTurn && !isPlayer1}
               canInteract={canInteract && !isDraftFinished}
               allCharacters={player2Characters}
               playerProfile={player2Profile}
@@ -315,17 +435,38 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
           </div>
 
           {isDraftFinished && (
-            <div className="weapon-section-wrapper">
-              <h4 className="section-subtitle">⚔️ Выбор оружия</h4>
+            <div
+              className="weapon-section-wrapper"
+              style={{ position: "relative", marginTop: "1.5rem" }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                <h4 className="section-subtitle" style={{ margin: 0 }}>
+                  ⚔️ Выбор оружия
+                </h4>
+                <CostIndicator
+                  current={p2CurrentWeaponCost}
+                  max={maxWeaponCost}
+                  isMyColumn={!isPlayer1}
+                  label="Стоимость оружия"
+                />
+              </div>
+
               {isReadOnly ? (
-                 <WeaponSelector
+                <WeaponSelector
                   duel={duel}
                   playerId={duel.player2}
                   currentUserId={currentUserId}
                   isMyColumn={!isPlayer1}
                   canInteract={false}
                   onSubmit={() => {}}
-                  myWeaponIds={Array.from(p2WeaponIds)}
+                  myWeaponIds={p2WeaponIdList}
                   playerProfile={player2Profile}
                 />
               ) : (
@@ -336,7 +477,7 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
                   isMyColumn={!isPlayer1}
                   canInteract={canInteract}
                   onSubmit={handleWeaponSubmit}
-                  myWeaponIds={Array.from(p2WeaponIds)}
+                  myWeaponIds={p2WeaponIdList}
                   playerProfile={player2Profile}
                 />
               )}

@@ -10,7 +10,7 @@ import { useAdmin } from "@/lib/hook/useAdmin";
 import { deleteCharacter, fetchCharacters } from "@/lib/slices/charactersSlice";
 import { deleteWeapon, fetchWeapons } from "@/lib/slices/weaponsSlice";
 import { openModal } from "@/lib/slices/modalSlice";
-import { fetchAdminSettings, updateAdminSettings } from "@/lib/slices/adminSettingsSlice"; // ✅ Импортируем
+import { fetchAdminSettings, updateAdminSettings } from "@/lib/slices/adminSettingsSlice";
 import { Header, ItemCard, Loading } from "../components";
 import "./adminpage.scss";
 import "../user/userpage.scss";
@@ -26,9 +26,13 @@ export default function AdminPage() {
 
   const characters = useSelector((state: RootState) => state.characters.items);
   const weapons = useSelector((state: RootState) => state.weapons.items);
+  
   // ✅ Получаем настройки из Redux
   const adminSettings = useSelector((state: RootState) => state.adminSettings);
-  const [localMaxCost, setLocalMaxCost] = useState<number>(10);
+  
+  // Локальные стейты для двух лимитов
+  const [localMaxCharCost, setLocalMaxCharCost] = useState<number>(10);
+  const [localMaxWepCost, setLocalMaxWepCost] = useState<number>(10);
 
   // Состояния фильтров
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,31 +46,42 @@ export default function AdminPage() {
     if (!loading && isAdmin) {
       dispatch(fetchCharacters());
       dispatch(fetchWeapons());
-      dispatch(fetchAdminSettings()); // ✅ Загружаем настройки
+      dispatch(fetchAdminSettings());
     }
   }, [isAdmin, loading, dispatch]);
 
-  // Синхронизация локального стейта с Redux
+  // Синхронизация локального стейта с Redux при загрузке
   useEffect(() => {
     if (adminSettings.status === "succeeded") {
-      setLocalMaxCost(adminSettings.maxTeamCost);
+      setLocalMaxCharCost(adminSettings.maxTeamCost || 10);
+      // Если поле maxWeaponCost еще не существует в базе, используем дефолт или равняем к charCost
+      setLocalMaxWepCost(adminSettings.maxWeaponCost ?? adminSettings.maxTeamCost ?? 10);
     }
-  }, [adminSettings.maxTeamCost, adminSettings.status]);
+  }, [adminSettings.maxTeamCost, adminSettings.maxWeaponCost, adminSettings.status]);
 
-  const handleSaveMaxCost = async () => {
-    if (localMaxCost < 1 || localMaxCost > 50) {
-      toast.error("Лимит должен быть от 1 до 50");
+  const handleSaveSettings = async () => {
+    if (localMaxCharCost < 1 || localMaxCharCost > 50) {
+      toast.error("Лимит персонажей должен быть от 1 до 50");
       return;
     }
+    if (localMaxWepCost < 1 || localMaxWepCost > 50) {
+      toast.error("Лимит оружия должен быть от 1 до 50");
+      return;
+    }
+
     try {
-      await dispatch(updateAdminSettings({ maxTeamCost: localMaxCost })).unwrap();
-      toast.success(`✅ Максимальный кост команды установлен: ${localMaxCost}`);
+      await dispatch(updateAdminSettings({ 
+        maxTeamCost: localMaxCharCost,
+        maxWeaponCost: localMaxWepCost
+      })).unwrap();
+      
+      toast.success(`✅ Настройки сохранены!\nПерсонажи: ${localMaxCharCost}\nОружие: ${localMaxWepCost}`);
     } catch (error) {
       toast.error("❌ Ошибка сохранения настроек");
     }
   };
 
-  // Логика фильтрации (без изменений)
+  // Логика фильтрации
   const filteredCharacters = useMemo(() => {
     return characters.filter((char) => {
       const matchesSearch = char.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -110,60 +125,97 @@ export default function AdminPage() {
         <div className="container">
           <h1 className="admin-h1">🛡️ Админ-панель</h1>
 
-          {/* ✅ НОВЫЙ БЛОК: ГЛОБАЛЬНЫЕ НАСТРОЙКИ */}
+          {/* ✅ ОБНОВЛЕННЫЙ БЛОК: ГЛОБАЛЬНЫЕ НАСТРОЙКИ (ДВА ЛИМИТА) */}
           <section className="section" style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem' }}>
             <h2 className="h2-common" style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>⚙️ Настройки дуэлей</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-              <div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+              
+              {/* Настройка лимита персонажей */}
+              <div style={{ background: '#0f172a', padding: '1rem', borderRadius: '6px' }}>
                 <label style={{ display: 'block', fontSize: '0.9rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
-                  Максимальный суммарный кост команды (вес):
+                  🧙‍♂️ Макс. кост команды (Персонажи)
                 </label>
                 <input
                   type="number"
                   min="1"
                   max="50"
-                  value={localMaxCost}
-                  onChange={(e) => setLocalMaxCost(Number(e.target.value))}
+                  value={localMaxCharCost}
+                  onChange={(e) => setLocalMaxCharCost(Number(e.target.value))}
                   style={{
+                    width: '100%',
                     padding: '0.5rem',
                     borderRadius: '4px',
                     border: '1px solid #475569',
-                    background: '#0f172a',
+                    background: '#1e293b',
                     color: 'white',
-                    width: '80px',
                     fontSize: '1.1rem',
-                    fontWeight: 'bold'
+                    fontWeight: 'bold',
+                    boxSizing: 'border-box'
                   }}
                 />
+                <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
+                  Сумма весов всех персонажей не должна превышать это значение.
+                </p>
               </div>
+
+              {/* Настройка лимита оружия */}
+              <div style={{ background: '#0f172a', padding: '1rem', borderRadius: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
+                  ⚔️ Макс. кост команды (Оружие)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={localMaxWepCost}
+                  onChange={(e) => setLocalMaxWepCost(Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    borderRadius: '4px',
+                    border: '1px solid #475569',
+                    background: '#1e293b',
+                    color: 'white',
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
+                  Сумма весов всего оружия не должна превышать это значение.
+                </p>
+              </div>
+
+            </div>
+
+            <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <button
-                onClick={handleSaveMaxCost}
+                onClick={handleSaveSettings}
                 disabled={adminSettings.status === "loading"}
                 style={{
-                  padding: '0.5rem 1.5rem',
+                  padding: '0.6rem 2rem',
                   background: '#22c55e',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   cursor: adminSettings.status === "loading" ? 'not-allowed' : 'pointer',
                   fontWeight: 'bold',
+                  fontSize: '1rem',
                   opacity: adminSettings.status === "loading" ? 0.7 : 1
                 }}
               >
-                {adminSettings.status === "loading" ? "Сохранение..." : "💾 Сохранить"}
+                {adminSettings.status === "loading" ? "Сохранение..." : "💾 Сохранить настройки"}
               </button>
-              <span style={{ fontSize: '0.85rem', color: '#94a3b8', maxWidth: '300px' }}>
-                Игроки не смогут подтвердить команду, если сумма весов персонажей (C0=1, C1=2...) превысит это значение.
+              
+              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                Текущие значения в базе: <strong>Персы: {adminSettings.maxTeamCost}</strong> | <strong>Оружие: {adminSettings.maxWeaponCost ?? adminSettings.maxTeamCost}</strong>
               </span>
-            </div>
-            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#64748b' }}>
-              Текущее значение в базе: <strong>{adminSettings.maxTeamCost}</strong>
             </div>
           </section>
 
-          {/* === ПАНЕЛЬ ФИЛЬТРОВ (Без изменений) === */}
+          {/* === ПАНЕЛЬ ФИЛЬТРОВ === */}
           <div className="filters-panel" style={{ marginBottom: "2rem", padding: "1rem", background: "#1e293b", borderRadius: "8px" }}>
-             {/* ... (код фильтров как был) ... */}
              <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
               <input
                 type="text"
@@ -174,7 +226,6 @@ export default function AdminPage() {
               />
               <button onClick={resetFilters} style={{ padding: "0.5rem 1rem", background: "#ef4444", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>Сбросить</button>
             </div>
-            {/* ... (остальные селекты) ... */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem" }}>
               <div>
                 <label style={{ fontSize: "0.8rem", color: "#94a3b8" }}>Редкость</label>
@@ -197,7 +248,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* === Персонажи и Оружие (Без изменений) === */}
+          {/* === Персонажи === */}
           <section className="section admin__characters">
             <h2 className="h2-common">Персонажи ({filteredCharacters.length})</h2>
             <button onClick={() => dispatch(openModal({ type: "characterAdd" }))} className="user__btn-add">Добавить персонажа</button>
@@ -214,6 +265,7 @@ export default function AdminPage() {
             </ul>
           </section>
 
+          {/* === Оружие === */}
           <section className="section admin__weapons">
             <h2 className="h2-common">Оружие ({filteredWeapons.length})</h2>
             <button onClick={() => dispatch(openModal({ type: "weaponAdd" }))} className="user__btn-add">Добавить оружие</button>

@@ -4,13 +4,15 @@ import { ref, get, update } from "firebase/database";
 import { db } from "@/lib/firebase";
 
 interface AdminSettingsState {
-  maxTeamCost: number;
+  maxTeamCost: number;       // Для персонажей
+  maxWeaponCost: number;     // ✅ Для оружия
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
 }
 
 const initialState: AdminSettingsState = {
-  maxTeamCost: 10, // Значение по умолчанию
+  maxTeamCost: 10,
+  maxWeaponCost: 10, 
   status: "idle",
   error: null,
 };
@@ -21,10 +23,14 @@ export const fetchAdminSettings = createAsyncThunk(
   async () => {
     const snapshot = await get(ref(db, "adminSettings"));
     if (snapshot.exists()) {
-      return snapshot.val() as { maxTeamCost: number };
+      const data = snapshot.val();
+      return {
+        maxTeamCost: data.maxTeamCost ?? 10,
+        maxWeaponCost: data.maxWeaponCost ?? 10, // Если нет в базе, берем дефолт
+      };
     }
-    // Если настроек нет, возвращаем дефолт и создаем запись в БД (опционально)
-    const defaultSettings = { maxTeamCost: 10 };
+    // Если настроек нет, создаем дефолтные
+    const defaultSettings = { maxTeamCost: 10, maxWeaponCost: 10 };
     await update(ref(db, "adminSettings"), defaultSettings);
     return defaultSettings;
   }
@@ -33,7 +39,7 @@ export const fetchAdminSettings = createAsyncThunk(
 // Обновление настроек
 export const updateAdminSettings = createAsyncThunk(
   "adminSettings/update",
-  async (newSettings: Partial<{ maxTeamCost: number }>) => {
+  async (newSettings: Partial<{ maxTeamCost: number; maxWeaponCost: number }>) => {
     await update(ref(db, "adminSettings"), newSettings);
     return newSettings;
   }
@@ -51,6 +57,7 @@ const adminSettingsSlice = createSlice({
       .addCase(fetchAdminSettings.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.maxTeamCost = action.payload.maxTeamCost;
+        state.maxWeaponCost = action.payload.maxWeaponCost;
       })
       .addCase(fetchAdminSettings.rejected, (state, action) => {
         state.status = "failed";
@@ -59,6 +66,9 @@ const adminSettingsSlice = createSlice({
       .addCase(updateAdminSettings.fulfilled, (state, action) => {
         if (action.payload.maxTeamCost !== undefined) {
           state.maxTeamCost = action.payload.maxTeamCost;
+        }
+        if (action.payload.maxWeaponCost !== undefined) {
+          state.maxWeaponCost = action.payload.maxWeaponCost;
         }
       });
   },
