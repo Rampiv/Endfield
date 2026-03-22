@@ -3,7 +3,7 @@
 
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/lib/store";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { openModal } from "@/lib/slices/modalSlice";
 import toast from "react-hot-toast";
 import { ItemCard, Header, Loading } from "../components";
@@ -20,6 +20,11 @@ import { fetchWeapons } from "@/lib/slices/weaponsSlice";
 
 type UserItem = Character | Weapon;
 
+// Типы для фильтров
+type RarityFilter = "" | "4" | "5" | "6";
+type ConstFilter = "" | "0" | "1" | "2" | "3" | "4" | "5" | "6";
+type WeaponTypeFilter = "" | "sword" | "handcannon" | "greatsword" | "polearm" | "artsUnit";
+
 export default function UserPage() {
   const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
@@ -30,7 +35,18 @@ export default function UserPage() {
 
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // Загружаем данные при монтировании
+  // Состояния фильтров
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Фильтры персонажей
+  const [charRarity, setCharRarity] = useState<RarityFilter>("");
+  const [charConst, setCharConst] = useState<ConstFilter>("");
+
+  // Фильтры оружия
+  const [wepRarity, setWepRarity] = useState<RarityFilter>("");
+  const [wepConst, setWepConst] = useState<ConstFilter>("");
+  const [wepType, setWepType] = useState<WeaponTypeFilter>("");
+
   useEffect(() => {
     if (user?.uid) {
       dispatch(fetchCharacters());
@@ -62,7 +78,37 @@ export default function UserPage() {
 
   const handleAddWeapons = () => dispatch(openModal({ type: "chooseWeapons" }));
 
-  // Состояния загрузки и ошибок
+  // ✅ Логика фильтрации Персонажей
+  const filteredCharacters = useMemo(() => {
+    return userCharacters.filter((char) => {
+      const matchesSearch = char.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesRarity = !charRarity || String(char.rarity) === charRarity;
+      const matchesConst = !charConst || String(char.constellation ?? 0) === charConst;
+      return matchesSearch && matchesRarity && matchesConst;
+    });
+  }, [userCharacters, searchQuery, charRarity, charConst]);
+
+  // ✅ Логика фильтрации Оружия
+  const filteredWeapons = useMemo(() => {
+    return userWeapons.filter((weapon) => {
+      const matchesSearch = weapon.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesRarity = !wepRarity || String(weapon.rarity) === wepRarity;
+      const matchesConst = !wepConst || String(weapon.constellation ?? 0) === wepConst;
+      const matchesType = !wepType || weapon.type === wepType;
+      return matchesSearch && matchesRarity && matchesConst && matchesType;
+    });
+  }, [userWeapons, searchQuery, wepRarity, wepConst, wepType]);
+
+  // Сброс фильтров
+  const resetFilters = () => {
+    setSearchQuery("");
+    setCharRarity("");
+    setCharConst("");
+    setWepRarity("");
+    setWepConst("");
+    setWepType("");
+  };
+
   if (!user || status === "loading") {
     return (
       <>
@@ -88,34 +134,76 @@ export default function UserPage() {
       <Header />
       <main className="user">
         <div className="container">
+          
+          {/* === ПАНЕЛЬ ФИЛЬТРОВ === */}
+          <div className="filters-panel" style={{ marginBottom: '2rem', padding: '1rem', background: '#1e293b', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="🔍 Поиск по имени..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ flex: 1, minWidth: '200px', padding: '0.5rem', borderRadius: '4px', border: '1px solid #475569', background: '#0f172a', color: 'white' }}
+              />
+              <button onClick={resetFilters} style={{ padding: '0.5rem 1rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                Сбросить
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Редкость (Все)</label>
+                <select value={charRarity} onChange={(e) => setCharRarity(e.target.value as RarityFilter)} style={{ width: '100%', padding: '0.4rem', background: '#0f172a', color: 'white', border: '1px solid #475569', borderRadius: '4px' }}>
+                  <option value="">Любая</option>
+                  <option value="4">4 ★</option>
+                  <option value="5">5 ★</option>
+                  <option value="6">6 ★</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Конста (Все)</label>
+                <select value={charConst} onChange={(e) => setCharConst(e.target.value as ConstFilter)} style={{ width: '100%', padding: '0.4rem', background: '#0f172a', color: 'white', border: '1px solid #475569', borderRadius: '4px' }}>
+                  <option value="">Любая</option>
+                  {[0,1,2,3,4,5,6].map(n => <option key={n} value={String(n)}>C{n}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Тип оружия</label>
+                <select value={wepType} onChange={(e) => setWepType(e.target.value as WeaponTypeFilter)} style={{ width: '100%', padding: '0.4rem', background: '#0f172a', color: 'white', border: '1px solid #475569', borderRadius: '4px' }}>
+                  <option value="">Любой</option>
+                  <option value="sword">Меч</option>
+                  <option value="handcannon">Пистолеты</option>
+                  <option value="greatsword">Двуручный</option>
+                  <option value="polearm">Копье</option>
+                  <option value="artsUnit">Катализатор</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* === ПЕРСОНАЖИ === */}
           <section className="section">
-            <h2 className="h2-common">Мои персонажи</h2>
+            <h2 className="h2-common">Мои персонажи ({filteredCharacters.length})</h2>
             <button onClick={handleAddCharacters} className="user__btn-add">
               Добавить персонажа
             </button>
 
-            {userCharacters.length === 0 ? (
-              <p className="user__item-null">У вас пока нет персонажей</p>
+            {filteredCharacters.length === 0 ? (
+              <p className="user__item-null">Нет персонажей по выбранным фильтрам</p>
             ) : (
               <ul className="user__list">
-                {userCharacters.map((char) => (
+                {filteredCharacters.map((char) => (
                   <li key={char.id} className="user__item">
                     <ItemCard item={char} />
-
                     {isEditMode && (
                       <div className="user__item-actions">
-                        {/* ✅ Кнопка редактирования консты (Открывает модалку через Redux) */}
                         <button
                           onClick={() =>
                             dispatch(
                               openModal({
                                 type: "itemEdit",
-                                data: {
-                                  itemType: "character",
-                                  itemId: char.id,
-                                },
-                                isUserMode: true, // ✅ Флаг для режима пользователя
+                                data: { itemType: "character", itemId: char.id },
+                                isUserMode: true,
                               }),
                             )
                           }
@@ -124,7 +212,6 @@ export default function UserPage() {
                         >
                           ✦ C{char.constellation || 0}
                         </button>
-
                         <button
                           onClick={() => handleRemoveItem("character", char)}
                           className="user__btn-dell"
@@ -142,32 +229,27 @@ export default function UserPage() {
 
           {/* === ОРУЖИЕ === */}
           <section className="section">
-            <h2 className="h2-common">Моё оружие</h2>
+            <h2 className="h2-common">Моё оружие ({filteredWeapons.length})</h2>
             <button onClick={handleAddWeapons} className="user__btn-add">
               Добавить оружие
             </button>
 
-            {userWeapons.length === 0 ? (
-              <p className="user__item-null">У вас пока нет оружия</p>
+            {filteredWeapons.length === 0 ? (
+              <p className="user__item-null">Нет оружия по выбранным фильтрам</p>
             ) : (
               <ul className="user__list">
-                {userWeapons.map((weapon) => (
+                {filteredWeapons.map((weapon) => (
                   <li key={weapon.id} className="user__item">
                     <ItemCard item={weapon} />
-
                     {isEditMode && (
                       <div className="user__item-actions">
-                        {/* ✅ Кнопка редактирования консты (Открывает модалку через Redux) */}
                         <button
                           onClick={() =>
                             dispatch(
                               openModal({
                                 type: "itemEdit",
-                                data: {
-                                  itemType: "weapon",
-                                  itemId: weapon.id,
-                                },
-                                isUserMode: true, // ✅ Флаг для режима пользователя
+                                data: { itemType: "weapon", itemId: weapon.id },
+                                isUserMode: true,
                               }),
                             )
                           }
@@ -176,7 +258,6 @@ export default function UserPage() {
                         >
                           ✦ C{weapon.constellation || 0}
                         </button>
-
                         <button
                           onClick={() => handleRemoveItem("weapon", weapon)}
                           className="user__btn-dell"
@@ -192,7 +273,6 @@ export default function UserPage() {
             )}
           </section>
 
-          {/* Кнопка переключения режима редактирования */}
           <div className="user__btn-container">
             <button
               onClick={() => setIsEditMode(!isEditMode)}

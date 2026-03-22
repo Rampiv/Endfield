@@ -39,6 +39,9 @@ export function WeaponSelector({
 
   const [localWeapons, setLocalWeapons] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  
+  // ✅ Состояние для фильтра по типу оружия
+  const [weaponTypeFilter, setWeaponTypeFilter] = useState<string>("");
 
   const dbWeapons = duel.weapons?.[playerId] || [];
   const isReady = dbWeapons.length >= 4;
@@ -62,7 +65,6 @@ export function WeaponSelector({
     if (localWeapons.length >= 4) {
       return;
     }
-    // Добавляем ID, даже если он уже есть в массиве (разрешаем дубликаты)
     setLocalWeapons((prev) => [...prev, id]);
   };
 
@@ -77,19 +79,32 @@ export function WeaponSelector({
     return playerProfile?.weapons?.[wId]?.constellation ?? 0;
   };
 
-  // ✅ ИСПРАВЛЕННАЯ ЛОГИКА: Разрешаем дубликаты
+  // ✅ ЛОГИКА ФИЛЬТРАЦИИ С УЧЕТОМ ТИПА
   const availableWeapons = useMemo(() => {
     return allWeapons.filter((w) => {
       if (!w.id) return false;
 
-      // Проверка 1: Есть ли это оружие в моем личном инвентаре (профиль пользователя)?
+      // Проверка 1: Есть ли это оружие в моем личном инвентаре?
       if (myWeaponIds && myWeaponIds.length > 0) {
         if (!myWeaponIds.includes(w.id)) return false;
       }
 
+      // Проверка 2: Соответствует ли выбранному типу фильтра?
+      if (weaponTypeFilter && w.type !== weaponTypeFilter) {
+        return false;
+      }
+
       return true;
     });
-  }, [allWeapons, myWeaponIds]);
+  }, [allWeapons, myWeaponIds, weaponTypeFilter]);
+
+  // Функция для сброса фильтра при открытии/закрытии
+  const toggleModal = (open: boolean) => {
+    setIsOpen(open);
+    if (open) {
+      setWeaponTypeFilter(""); // Сбрасываем фильтр при открытии
+    }
+  };
 
   return (
     <div className="weapon-selector">
@@ -146,12 +161,39 @@ export function WeaponSelector({
       {isReady && <div className="ready-msg">Готов к бою</div>}
 
       {isOpen && canEdit && (
-        <div className="modal-overlay" onClick={() => setIsOpen(false)}>
+        <div className="modal-overlay" onClick={() => toggleModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Выберите оружие ({localWeapons.length}/4)</h3>
-              <button onClick={() => setIsOpen(false)}>✕</button>
+              <button onClick={() => toggleModal(false)}>✕</button>
             </div>
+            
+            {/* ✅ ПАНЕЛЬ ФИЛЬТРОВ */}
+            <div style={{ padding: '0.5rem 0', borderBottom: '1px solid #334155', marginBottom: '1rem' }}>
+              <label style={{ fontSize: '0.9rem', color: '#94a3b8', marginRight: '0.5rem' }}>
+                Фильтр по типу:
+              </label>
+              <select
+                value={weaponTypeFilter}
+                onChange={(e) => setWeaponTypeFilter(e.target.value)}
+                style={{
+                  padding: '0.4rem',
+                  borderRadius: '4px',
+                  background: '#1e293b',
+                  color: 'white',
+                  border: '1px solid #475569',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="">Все типы</option>
+                <option value="sword">Одноручный меч</option>
+                <option value="handcannon">Пистолеты</option>
+                <option value="greatsword">Двуручный меч</option>
+                <option value="polearm">Копье</option>
+                <option value="artsUnit">Катализатор</option>
+              </select>
+            </div>
+
             <div className="modal-weapons-grid">
               {availableWeapons.length > 0 ? (
                 availableWeapons.map((w) => {
@@ -169,8 +211,8 @@ export function WeaponSelector({
                   );
                 })
               ) : (
-                <p style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8' }}>
-                  Нет доступного оружия
+                <p style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8', gridColumn: '1 / -1' }}>
+                  Нет оружия такого типа в вашей коллекции
                 </p>
               )}
             </div>

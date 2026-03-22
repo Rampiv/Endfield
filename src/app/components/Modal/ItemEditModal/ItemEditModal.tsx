@@ -7,8 +7,7 @@ import { AppDispatch, RootState } from "@/lib/store";
 import toast from "react-hot-toast";
 import { Loading } from "../../Loading";
 import { Character, Weapon } from "@/lib/types";
-// Импортируем thunk для обновления консты пользователя
-import { updateUserItemConstellation } from "@/lib/slices/userItemsSlice"; 
+import { updateUserItemConstellation } from "@/lib/slices/userItemsSlice";
 import { updateCharacter } from "@/lib/slices/charactersSlice";
 import { updateWeapon } from "@/lib/slices/weaponsSlice";
 import "./ItemEditModal.scss";
@@ -18,18 +17,20 @@ interface Props {
   onClose: () => void;
   itemType: "weapon" | "character";
   itemId?: string;
-  isUserMode?: boolean; // ✅ Новый проп: true если пользователь редактирует свою коллекцию
+  isUserMode?: boolean;
 }
 
 type Item = Character | Weapon;
 
-export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }: Props) {
+export function ItemEditModal({
+  onClose,
+  itemType,
+  itemId,
+  isUserMode = false,
+}: Props) {
   const dispatch = useDispatch<AppDispatch>();
-  
-  // Получаем текущего пользователя (нужен для isUserMode)
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
-  // Загружаем данные, если редактируем существующий предмет
   const existingItem = useSelector((state: RootState) => {
     if (!itemId) return null;
     const items =
@@ -51,18 +52,38 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
     type: "",
   });
 
-  // 🔄 Заполняем форму при загрузке
+  // 🔄 Заполняем форму при загрузке + Исправление пустых полей
   useEffect(() => {
     if (existingItem) {
-      setFormData(existingItem);
+      // Создаем копию данных
+      const dataToSet = { ...existingItem };
+
+      // ✅ ИСПРАВЛЕНИЕ ОШИБОК TS: Проверяем itemType перед доступом к полям
+
+      if (itemType === "weapon") {
+        // Приводим тип к Weapon, чтобы TS знал про поле type
+        const weaponData = dataToSet as Weapon;
+        if (!weaponData.type || weaponData.type === "") {
+          weaponData.type = "sword";
+        }
+      }
+
+      if (itemType === "character") {
+        // Приводим тип к Character, чтобы TS знал про поле element
+        const charData = dataToSet as Character;
+        if (!charData.element || charData.element === "") {
+          charData.element = "physical";
+        }
+      }
+
+      setFormData(dataToSet);
     }
-  }, [existingItem]);
+  }, [existingItem, itemType]);
 
   const handleChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // 💾 Отправка формы
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -71,13 +92,12 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
       return;
     }
 
-    // Проверка для режима пользователя
     if (isUserMode) {
       if (!currentUser?.uid) {
         toast.error("❌ Ошибка: пользователь не авторизован");
         return;
       }
-      
+
       try {
         await dispatch(
           updateUserItemConstellation({
@@ -85,9 +105,9 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
             type: itemType,
             itemId,
             constellation: Number(formData.constellation) || 0,
-          })
+          }),
         ).unwrap();
-        
+
         toast.success(`✅ Конста обновлена на C${formData.constellation}!`);
         onClose();
         return;
@@ -98,7 +118,6 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
       }
     }
 
-    // Проверка для режима админа (глобальное редактирование)
     if (!formData.name?.trim()) {
       toast.error("❌ Название обязательно");
       return;
@@ -106,13 +125,29 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
 
     try {
       if (existingItem) {
+        const finalData = { ...formData };
+
+        // Страховка перед отправкой
+        if (itemType === "weapon") {
+          // Говорим TS, что здесь finalData — это Weapon
+          const weaponData = finalData as Weapon;
+          if (!weaponData.type || weaponData.type === "") {
+            weaponData.type = "sword";
+          }
+        } else if (itemType === "character") {
+          // Говорим TS, что здесь finalData — это Character
+          const charData = finalData as Character;
+          if (!charData.element || charData.element === "") {
+            charData.element = "physical";
+          }
+        }
         if (itemType === "character") {
           await dispatch(
-            updateCharacter({ id: itemId, data: formData })
+            updateCharacter({ id: itemId, data: finalData }),
           ).unwrap();
         } else {
           await dispatch(
-            updateWeapon({ id: itemId, data: formData })
+            updateWeapon({ id: itemId, data: finalData }),
           ).unwrap();
         }
         toast.success("✅ Данные предмета обновлены!");
@@ -126,7 +161,6 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
     }
   };
 
-  // ⏳ Загрузка
   if (status === "loading" && itemId && !isUserMode) {
     return (
       <div className="modal-content">
@@ -136,43 +170,52 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
     );
   }
 
-  // 📝 Тексты
   const texts = {
-    title: isUserMode 
+    title: isUserMode
       ? `Изменить консту: ${existingItem?.name || "Предмет"}`
-      : (itemId && itemType === "character" ? "Редактировать персонажа" : "Редактировать оружие"),
+      : itemId && itemType === "character"
+        ? "Редактировать персонажа"
+        : "Редактировать оружие",
     submit: isUserMode ? "Применить" : "Сохранить",
   };
 
   return (
     <>
       <h2 className="h2-common">{texts.title}</h2>
-      
+
       {isUserMode && (
-        <p style={{ marginBottom: '1rem', color: '#94a3b8', fontSize: '0.9rem', textAlign: 'center' }}>
+        <p
+          style={{
+            marginBottom: "1rem",
+            color: "#94a3b8",
+            fontSize: "0.9rem",
+            textAlign: "center",
+          }}
+        >
           Изменение применится только к вашей копии предмета в коллекции.
         </p>
       )}
 
       <form onSubmit={handleSubmit} className="form">
-        
-        {/* ✅ РЕЖИМ ПОЛЬЗОВАТЕЛЯ: Только конста */}
         {isUserMode ? (
           <div className="form__content">
             <label className="form__label">Уровень пробуждения (Конста)</label>
             <select
               value={formData.constellation ?? 0}
-              onChange={(e) => handleChange("constellation", Number(e.target.value))}
+              onChange={(e) =>
+                handleChange("constellation", Number(e.target.value))
+              }
               className="form__input"
-              style={{ fontSize: '1.1rem', fontWeight: 'bold' }}
+              style={{ fontSize: "1.1rem", fontWeight: "bold" }}
             >
-              {[0, 1, 2, 3, 4, 5].map((n) => (
-                <option key={n} value={n}>C{n} {n === 0 ? '(Базовый)' : ''}</option>
+              {[0, 1, 2, 3, 4, 5, 6].map((n) => (
+                <option key={n} value={n}>
+                  C{n} {n === 0 ? "(Базовый)" : ""}
+                </option>
               ))}
             </select>
           </div>
         ) : (
-          /* ✅ РЕЖИМ АДМИНА: Все поля */
           <>
             {/* Название */}
             <div className="form__content">
@@ -205,7 +248,7 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
             <div className="form__content">
               <label className="form__label">Редкость</label>
               <select
-                value={formData.rarity || ""}
+                value={formData.rarity || "5"}
                 onChange={(e) => handleChange("rarity", e.target.value)}
                 className="form__input"
               >
@@ -220,11 +263,15 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
               <label className="form__label">Пробуждение (Глобальное)</label>
               <select
                 value={formData.constellation ?? 0}
-                onChange={(e) => handleChange("constellation", Number(e.target.value))}
+                onChange={(e) =>
+                  handleChange("constellation", Number(e.target.value))
+                }
                 className="form__input"
               >
                 {[0, 1, 2, 3, 4, 5, 6].map((n) => (
-                  <option key={n} value={n}>C{n}</option>
+                  <option key={n} value={n}>
+                    C{n}
+                  </option>
                 ))}
               </select>
             </div>
@@ -234,7 +281,7 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
               <div className="form__content">
                 <label className="form__label">Элемент</label>
                 <select
-                  value={(formData as Character).element || ""}
+                  value={(formData as Character).element || "physical"}
                   onChange={(e) => handleChange("element", e.target.value)}
                   className="form__input"
                 >
@@ -252,7 +299,7 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
               <div className="form__content">
                 <label className="form__label">Тип оружия</label>
                 <select
-                  value={(formData as Weapon).type || ""}
+                  value={(formData as Weapon).type || "sword"}
                   onChange={(e) => handleChange("type", e.target.value)}
                   className="form__input"
                 >
@@ -268,7 +315,10 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
         )}
 
         <div className="form__btn-container">
-          <button type="submit" className={`form__btn ${isUserMode ? 'form__btn-create' : 'form__btn-create'}`}>
+          <button
+            type="submit"
+            className={`form__btn ${isUserMode ? "form__btn-create" : "form__btn-create"}`}
+          >
             {texts.submit}
           </button>
           <button
