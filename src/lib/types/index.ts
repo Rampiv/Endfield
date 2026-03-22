@@ -1,19 +1,23 @@
 export interface Character {
-  id: string;
+  id?: string;
   name: string;
   element: string;
-  rarity: string;
-  image?: string;
-  constellation?: number
+  rarity: string | number;
+  image: string;
+  createdAt?: number;
+  constellation?: number;
+  costTable?: Record<number, number>; 
 }
 
 export interface Weapon {
-  id: string;
+  id?: string;
   name: string;
   type: string;
-  rarity: string;
-  image?: string;
-  constellation?: number
+  rarity: string | number;
+  image: string;
+  createdAt?: number;
+  constellation?: number;
+  costTable?: Record<number, number>;
 }
 
 // Дуэли

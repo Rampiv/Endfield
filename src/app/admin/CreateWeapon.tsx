@@ -1,4 +1,4 @@
-// src/app/admin/weapons/new/page.tsx (или там, где у тебя этот файл)
+// src/app/admin/weapons/new/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -18,29 +18,29 @@ export default function NewWeaponPage({ onClose }: Props) {
 
   const [formData, setFormData] = useState({
     name: "",
-    type: "sword", // ✅ Установим значение по умолчанию явно
-    rarity: "5",   // ✅ И редкость по умолчанию
+    type: "sword",
+    rarity: "5",
     image: "",
-    constellation: 0
+    constellation: 0,
   });
+
+  // ✅ Расчет "веса" оружия для лимита команды
+  const unitCost = formData.constellation + 1;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ✅ Проверка перед отправкой
     if (!formData.type) {
       toast.error("❌ Выберите тип оружия!");
       return;
     }
 
-    console.log("Отправка данных:", formData); // Для отладки в консоли браузера
-
     try {
       await dispatch(addWeapon(formData)).unwrap();
-      toast.success("✅ Оружие создано!");
+      toast.success(`✅ Оружие создано! (Вес в команде: ${unitCost})`);
       onClose();
       router.push("/admin");
-      router.refresh(); // Обновить данные на странице админки
+      router.refresh();
     } catch (error) {
       console.error(error);
       toast.error("❌ Ошибка при создании оружия");
@@ -68,14 +68,11 @@ export default function NewWeaponPage({ onClose }: Props) {
           <label className="form__label">Тип оружия</label>
           <select
             value={formData.type}
-            onChange={(e) => {
-              console.log("Выбран тип:", e.target.value); // Для отладки
-              setFormData({ ...formData, type: e.target.value });
-            }}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             className="form__input"
-            required // ✅ Добавим обязательное поле
+            required
           >
-            <option value="" disabled>Выберите тип...</option> {/* ✅ Пустой вариант для проверки */}
+            <option value="" disabled>Выберите тип...</option>
             <option value="sword">Одноручный меч</option>
             <option value="handcannon">Пистолеты</option>
             <option value="greatsword">Двуручный меч</option>
@@ -112,9 +109,14 @@ export default function NewWeaponPage({ onClose }: Props) {
             className="form__input"
           >
             {[0, 1, 2, 3, 4, 5, 6].map((n) => (
-              <option key={n} value={n}>C{n}</option>
+              <option key={n} value={n}>
+                C{n} (Вес: {n + 1})
+              </option>
             ))}
           </select>
+          <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.5rem' }}>
+            Вес этого оружия в составе команды: <strong>{unitCost}</strong>
+          </p>
         </div>
 
         <div className="form__content">
@@ -125,6 +127,7 @@ export default function NewWeaponPage({ onClose }: Props) {
             onChange={(e) => setFormData({ ...formData, image: e.target.value })}
             className="form__input"
             placeholder="https://..."
+            required
           />
         </div>
 

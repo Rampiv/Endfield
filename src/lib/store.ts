@@ -7,7 +7,7 @@ import weaponsReducer from "./slices/weaponsSlice";
 import userItemsReducer from "./slices/userItemsSlice";
 import duelsReducer from "./slices/duelsSlice";
 import usersReducer from "./slices/usersSlice";
-
+import adminSettingsReducer from "./slices/adminSettingsSlice";
 
 
 // ✅ Создаём store сразу (не функцию)
@@ -19,7 +19,8 @@ export const store = configureStore({
     weapons: weaponsReducer,
     userItems: userItemsReducer,
     duels: duelsReducer,
-    users: usersReducer, 
+    users: usersReducer,
+    adminSettings: adminSettingsReducer,
   },
 });
 
