@@ -106,7 +106,7 @@ export function BossFightResults({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalData) return;
 
@@ -118,6 +118,8 @@ export function BossFightResults({
     }
 
     try {
+      let resultSubmitted = false;
+
       if (modalData.type === "admin_edit") {
         const updates: any = {};
         if (!isNaN(timeVal) && timeVal > 0) {
@@ -137,7 +139,12 @@ export function BossFightResults({
         }
         await update(ref(db, `duels/${duel.id}`), updates);
         toast.success("✅ Данные обновлены (Admin)");
+        
+        // ✅ ПРОВЕРКА ЗАВЕРШЕНИЯ ДЛЯ АДМИНА
+        resultSubmitted = true; 
+
       } else if (modalData.type === "retry") {
+        // ... логика ретрая без изменений ...
         if (!isNaN(timeVal) && timeVal > 0) {
           await dispatch(
             adminRetryResult({
@@ -161,6 +168,7 @@ export function BossFightResults({
           }
         }
       } else {
+        // Обычная подача результата игроком
         await dispatch(
           submitDuelResult({
             duelId: duel.id,
@@ -170,6 +178,34 @@ export function BossFightResults({
             reason: null,
           }),
         ).unwrap();
+        
+        resultSubmitted = true;
+      }
+
+      // ✅ ПРОВЕРКА: Если результат подан, проверяем, завершена ли дуэль
+      if (resultSubmitted) {
+        // Небольшая задержка, чтобы Firebase успел обновиться, либо читаем локально
+        // Но надежнее проверить текущие данные в дуэли + новый результат
+        
+        // Проверяем, есть ли результаты у обоих
+        const p1HasResult = !!duel.results?.[duel.player1]?.bossTime;
+        const p2HasResult = !!duel.results?.[duel.player2]?.bossTime;
+        
+        // Учитываем, что текущий игрок только что подал результат
+        const currentPlayerId = modalData.targetUserId;
+        const otherPlayerId = currentPlayerId === duel.player1 ? duel.player2 : duel.player1;
+        
+        const currentJustSubmitted = true; // Мы только что отправили
+        const otherHasResult = !!duel.results?.[otherPlayerId]?.bossTime;
+
+        if (currentJustSubmitted && otherHasResult) {
+          // Оба результата есть! Меняем статус на finished
+          await update(ref(db, `duels/${duel.id}`), {
+            status: "finished",
+            finishedAt: Date.now(),
+          });
+          toast.success("🏆 Дуэль завершена!");
+        }
       }
 
       setShowModal(false);
@@ -177,6 +213,7 @@ export function BossFightResults({
       setReason("");
     } catch (error: any) {
       toast.error(error.message || "❌ Ошибка сохранения");
+      console.error(error);
     }
   };
 
@@ -243,7 +280,7 @@ export function BossFightResults({
 
         <div className="retries-block">
           <div className="label">
-            Ретраи: <strong>{remainingRetries}</strong> / {maxRetries}
+            Ретраи:
           </div>
           <div className="retries-dots">
             {Array.from({ length: maxRetries }).map((_, idx) => {

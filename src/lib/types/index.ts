@@ -63,7 +63,7 @@ export interface Duel {
   status: DuelStatus;
   createdAt: number;
   startedAt?: number;
-
+  finishedAt?: number; 
   settings: DuelSettings;
 
   currentTurn?: string;
