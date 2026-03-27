@@ -1,4 +1,3 @@
-// src/components/ModalProvider.tsx
 "use client";
 
 import { useSelector, useDispatch } from "react-redux";

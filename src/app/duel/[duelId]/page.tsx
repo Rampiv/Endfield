@@ -1,4 +1,3 @@
-// src/app/duel/[duelId]/page.tsx
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
@@ -53,7 +52,7 @@ export default function DuelPage({ params }: PageProps) {
   const [viewPhase, setViewPhase] = useState<string>(getInitialPhase());
   const prevDuelDataRef = useRef<any>(null);
 
-  // ✅ 1. ПОДПИСКА НА ДАННЫЕ
+  // ПОДПИСКА НА ДАННЫЕ
   useEffect(() => {
     if (!user?.uid || !duelId) return;
 
@@ -81,7 +80,7 @@ export default function DuelPage({ params }: PageProps) {
     };
   }, [dispatch, user?.uid, duelId]);
 
-  // ✅ 2. ИСПРАВЛЕННАЯ СИНХРОНИЗАЦИЯ ФАЗЫ
+  // СИНХРОНИЗАЦИЯ ФАЗЫ
   useEffect(() => {
     if (!duel) return;
 
@@ -104,7 +103,7 @@ export default function DuelPage({ params }: PageProps) {
     if (realIndex > currentIndex) {
       setViewPhase(duel.status);
     }
-  }, [duel?.status, duel?.id]); 
+  }, [duel?.status, duel?.id]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!duel || !isAdmin) return;
@@ -158,7 +157,7 @@ export default function DuelPage({ params }: PageProps) {
               Дуэль {isLive ? "(Активная)" : `(Архив: ${currentViewPhase})`}
             </h1>
 
-            {/* 🛠 ПАНЕЛЬ АДМИНА */}
+            {/* ПАНЕЛЬ АДМИНА */}
             {isAdmin && (
               <div className="duel-admin">
                 <h3 className="duel-admin__h3">Управление дуэлью</h3>
@@ -188,7 +187,7 @@ export default function DuelPage({ params }: PageProps) {
               </div>
             )}
 
-            {/* 🧭 НАВИГАЦИЯ */}
+            {/* НАВИГАЦИЯ */}
             <div className="spectator-nav">
               <button
                 onClick={() => navigatePhase("drafting")}

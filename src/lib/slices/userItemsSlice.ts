@@ -6,8 +6,6 @@ import { RootState } from "../store";
 interface UserItemsState {
   characterIds: string[];
   weaponIds: string[];
-  // ✅ Добавляем хранилище констелляций: { [itemId]: number }
-  // Это позволит хранить консту, специфичную для пользователя
   constellations: Record<string, number>; 
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;

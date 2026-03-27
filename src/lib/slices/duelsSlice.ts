@@ -4,7 +4,6 @@ import {
   set,
   get,
   update,
-  remove,
   push,
   onValue,
   off,
@@ -178,7 +177,7 @@ export const fetchUserInvites = createAsyncThunk(
   },
 );
 
-// ✅ Принять инвайт
+// Принять инвайт
 export const acceptDuelInvite = createAsyncThunk(
   "duels/acceptInvite",
   async ({
@@ -239,7 +238,7 @@ export const acceptDuelInvite = createAsyncThunk(
       weapons: {},
     };
 
-    // ✅ СТРАХОВКА: Очищаем старые activeDuel перед записью новых
+    // СТРАХОВКА: Очищаем старые activeDuel перед записью новых
     await Promise.all([
       set(duelRef, duel),
       update(ref(db, `users/${invite.from}/activeDuel`), { activeDuel: null }),
@@ -253,7 +252,7 @@ export const acceptDuelInvite = createAsyncThunk(
   },
 );
 
-// ❌ Отклонить инвайт
+// Отклонить инвайт
 export const declineDuelInvite = createAsyncThunk(
   "duels/declineInvite",
   async (inviteId: string) => {
@@ -262,7 +261,7 @@ export const declineDuelInvite = createAsyncThunk(
   },
 );
 
-// 📤 Отправить инвайт (С УМНОЙ ПРОВЕРКОЙ)
+// Отправить инвайт (С УМНОЙ ПРОВЕРКОЙ)
 export const sendDuelInvite = createAsyncThunk(
   "duels/sendInvite",
   async ({
@@ -297,7 +296,6 @@ export const sendDuelInvite = createAsyncThunk(
         duelData.status === "finished" ||
         duelData.status === "cancelled"
       ) {
-        // ✅ ИСПРАВЛЕНИЕ ОШИБКИ TS: Обновляем родительский узел, устанавливая поле в null
         await update(ref(db, `users/${uid}`), { activeDuel: null });
 
         console.log(`Cleared stale activeDuel for user ${uid}`);
@@ -424,10 +422,6 @@ export const submitDuelResult = createAsyncThunk(
 
       if (duel.status !== "finished") {
         updates["status"] = "finished";
-        // ✅ ОПЦИЯ: Можно раскомментировать, чтобы автоматически очищать activeDuel при финише
-        // updates[`users/${duel.player1}/activeDuel`] = null;
-        // updates[`users/${duel.player2}/activeDuel`] = null;
-        console.log("🏆 Дуэль завершена! Победитель:", winner || "Ничья");
       }
     }
 
@@ -436,7 +430,7 @@ export const submitDuelResult = createAsyncThunk(
   },
 );
 
-// 🔄 Админский ретрай
+// Админский ретрай
 export const adminRetryResult = createAsyncThunk(
   "duels/adminRetry",
   async ({
@@ -471,7 +465,7 @@ export const adminRetryResult = createAsyncThunk(
   },
 );
 
-// 📥 Загрузить активную дуэль
+// Загрузить активную дуэль
 export const subscribeToActiveDuel = createAsyncThunk(
   "duels/subscribe",
   async (userId: string) => {
@@ -502,7 +496,7 @@ export const subscribeToActiveDuel = createAsyncThunk(
   },
 );
 
-// ⚔️ Сохранить выбор оружия
+// Сохранить выбор оружия
 export const submitDuelWeapons = createAsyncThunk(
   "duels/submitWeapons",
   async ({
@@ -549,7 +543,7 @@ export const submitDuelWeapons = createAsyncThunk(
   },
 );
 
-// 🔄 Админ: Отменить последний выбор
+// Админ: Отменить последний выбор
 export const adminUndoPick = createAsyncThunk(
   "duels/adminUndoPick",
   async ({

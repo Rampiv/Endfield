@@ -1,7 +1,6 @@
-// src/components/duels/draft/CharacterDraft.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Character, Duel } from "@/lib/types";
 import { ItemCard } from "@/app/components/ItemCard";
 import "./CharacterDraft.scss";
@@ -20,7 +19,7 @@ interface Props {
   allCharacters: Character[];
   playerProfile?: UserProfile;
   onAction: (charId: string, action: "ban" | "pick") => void;
-  onSkipBan?: () => void; // ✅ Новый проп для пропуска бана
+  onSkipBan?: () => void; 
   onUndo?: (moveType: "ban" | "pick") => void;
 }
 
@@ -66,7 +65,7 @@ export function CharacterDraft({
   const isActuallyMyTurn = playerId === currentUserId && isMyTurn;
   const areButtonsActive = canInteract && isActuallyMyTurn;
 
-  const hasSkippedBan = duel.draft?.banSkipped?.[playerId] === true; // Нужна поддержка в типах и БД
+  const hasSkippedBan = duel.draft?.banSkipped?.[playerId] === true;
 
   const isBanPhaseOver =
     (myBans.length >= bansLimit || hasSkippedBan) && // Я готов
@@ -126,7 +125,7 @@ export function CharacterDraft({
           )}
         </div>
 
-        {/* ✅ КНОПКА ПРОПУСКА БАНА */}
+        {/* КНОПКА ПРОПУСКА БАНА */}
         {areButtonsActive && !hasBanned && !hasSkippedBan && (
           <button
             onClick={() => onSkipBan && onSkipBan()}

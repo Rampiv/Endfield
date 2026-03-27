@@ -1,4 +1,3 @@
-// src/components/duels/BossFightResults.tsx
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -106,7 +105,7 @@ export function BossFightResults({
     }
   };
 
-   const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalData) return;
 
@@ -139,12 +138,9 @@ export function BossFightResults({
         }
         await update(ref(db, `duels/${duel.id}`), updates);
         toast.success("✅ Данные обновлены (Admin)");
-        
-        // ✅ ПРОВЕРКА ЗАВЕРШЕНИЯ ДЛЯ АДМИНА
-        resultSubmitted = true; 
 
+        resultSubmitted = true;
       } else if (modalData.type === "retry") {
-        // ... логика ретрая без изменений ...
         if (!isNaN(timeVal) && timeVal > 0) {
           await dispatch(
             adminRetryResult({
@@ -178,23 +174,17 @@ export function BossFightResults({
             reason: null,
           }),
         ).unwrap();
-        
+
         resultSubmitted = true;
       }
 
-      // ✅ ПРОВЕРКА: Если результат подан, проверяем, завершена ли дуэль
+      // ПРОВЕРКА: Если результат подан, проверяем, завершена ли дуэль
       if (resultSubmitted) {
-        // Небольшая задержка, чтобы Firebase успел обновиться, либо читаем локально
-        // Но надежнее проверить текущие данные в дуэли + новый результат
-        
-        // Проверяем, есть ли результаты у обоих
-        const p1HasResult = !!duel.results?.[duel.player1]?.bossTime;
-        const p2HasResult = !!duel.results?.[duel.player2]?.bossTime;
-        
         // Учитываем, что текущий игрок только что подал результат
         const currentPlayerId = modalData.targetUserId;
-        const otherPlayerId = currentPlayerId === duel.player1 ? duel.player2 : duel.player1;
-        
+        const otherPlayerId =
+          currentPlayerId === duel.player1 ? duel.player2 : duel.player1;
+
         const currentJustSubmitted = true; // Мы только что отправили
         const otherHasResult = !!duel.results?.[otherPlayerId]?.bossTime;
 
@@ -229,11 +219,9 @@ export function BossFightResults({
     return map;
   }, [allUsers]);
 
-  // ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ РЕНДЕРА
   const renderPlayerCard = (userId: string) => {
-    // ✅ Получаем имя КОНКРЕТНО для этого userId
     const playerName = userNamesMap.get(userId) || "Игрок";
-    
+
     const isMe = userId === currentUserId;
     const result = duel.results?.[userId];
     const retries = duel.retries?.[userId];
@@ -251,9 +239,8 @@ export function BossFightResults({
         className={`player-card ${isMe ? "player-card--me" : ""}`}
       >
         <div className="card-header">
-          {/* ✅ Используем правильное имя */}
           <h3>{isMe ? `🎮 Вы (${playerName})` : `👤 ${playerName}`}</h3>
-          
+
           {canEdit && (
             <button
               onClick={() =>
@@ -279,9 +266,7 @@ export function BossFightResults({
         </div>
 
         <div className="retries-block">
-          <div className="label">
-            Ретраи:
-          </div>
+          <div className="label">Ретраи:</div>
           <div className="retries-dots">
             {Array.from({ length: maxRetries }).map((_, idx) => {
               const isUsed = idx < usedRetries;
@@ -336,7 +321,6 @@ export function BossFightResults({
       <h2 className="title">👹 Результаты битвы</h2>
 
       <div className="players-grid">
-        {/* ✅ Передаем только userId, имя вычисляется внутри */}
         {renderPlayerCard(player1Id)}
         {renderPlayerCard(player2Id)}
       </div>
@@ -417,19 +401,6 @@ export function BossFightResults({
                     onChange={(e) =>
                       setRetriesUsed(parseInt(e.target.value) || 0)
                     }
-                  />
-                </div>
-              )}
-
-              {(modalData.type === "retry" ||
-                modalData.type === "admin_edit") && (
-                <div className="form-group">
-                  <label>Причина (опционально):</label>
-                  <textarea
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="Комментарий..."
-                    rows={2}
                   />
                 </div>
               )}

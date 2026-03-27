@@ -1,4 +1,3 @@
-// src/components/duels/DraftPhase.tsx
 "use client";
 
 import { useEffect, useMemo } from "react";
@@ -11,7 +10,7 @@ import {
 } from "@/lib/slices/duelsSlice";
 import { fetchCharacters } from "@/lib/slices/charactersSlice";
 import { fetchAllUsers } from "@/lib/slices/usersSlice";
-import { fetchAdminSettings } from "@/lib/slices/adminSettingsSlice"; // ✅ Явно импортируем
+import { fetchAdminSettings } from "@/lib/slices/adminSettingsSlice"; 
 import toast from "react-hot-toast";
 import { Duel, Character, Weapon } from "@/lib/types";
 import { WeaponSelector } from "./WeaponSelection";
@@ -49,7 +48,7 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
   );
   const allUsers = useSelector((state: RootState) => state.users?.list || []);
 
-  // ✅ 1. ЯВНАЯ ЗАГРУЗКА НАСТРОЕК ПРИ МОНТИРОВАНИИ
+  // ЯВНАЯ ЗАГРУЗКА НАСТРОЕК ПРИ МОНТИРОВАНИИ
   useEffect(() => {
     if (adminSettings.status === "idle") {
       dispatch(fetchAdminSettings());
@@ -66,9 +65,6 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
     if (!allCharactersGlobal || allCharactersGlobal.length === 0) {
       dispatch(fetchCharacters());
     }
-    // Оружие обычно грузится внутри WeaponSelector, но для расчета веса нам нужно оно здесь
-    // Убедись, что где-то выше (в layout или page) вызывается fetchWeapons(),
-    // либо добавь dispatch(fetchWeapons()) здесь, если нужно.
   }, [dispatch, allCharactersGlobal]);
 
   const isPlayer1 = duel.player1 === currentUserId;
@@ -130,7 +126,7 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
   const player1Name = userNamesMap.get(duel.player1) || "Игрок 1";
   const player2Name = userNamesMap.get(duel.player2) || "Игрок 2";
 
-  // ✅ ФУНКЦИЯ РАСЧЕТА ВЕСА
+  // ФУНКЦИЯ РАСЧЕТА ВЕСА
   const get_item_cost = (item: Character | Weapon) => {
     if (!item) return 0;
     const c = item.constellation ?? 0;
@@ -140,7 +136,7 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
     return c + 1;
   };
 
-  // ✅ ПОДСЧЕТ СТОИМОСТИ ПЕРСОНАЖЕЙ
+  // ПОДСЧЕТ СТОИМОСТИ ПЕРСОНАЖЕЙ
   const p1CurrentCost = useMemo(() => {
     return player1Characters.reduce(
       (sum, char) => sum + get_item_cost(char),
@@ -155,7 +151,7 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
     );
   }, [player2Characters]);
 
-  // ✅ ПОДСЧЕТ СТОИМОСТИ ОРУЖИЯ + ОТЛАДКА
+  // ПОДСЧЕТ СТОИМОСТИ ОРУЖИЯ + ОТЛАДКА
   const p1CurrentWeaponCost = useMemo(() => {
     if (!p1WeaponIdList.length) return 0;
     if (!allWeaponsGlobal.length) {
@@ -185,7 +181,7 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
     }, 0);
   }, [p2WeaponIdList, allWeaponsGlobal]);
 
-  // ✅ ЛИМИТЫ (с защитой от undefined)
+  // ЛИМИТЫ (с защитой от undefined)
   const maxTeamCost = adminSettings.maxTeamCost || 10;
   const maxWeaponCost =
     adminSettings.maxWeaponCost ?? adminSettings.maxTeamCost ?? 10;
@@ -279,11 +275,11 @@ export function DraftPhase({ duel, currentUserId, isReadOnly = false }: Props) {
         style={{
           background: isOver ? "#450a0a" : "#1e293b",
           border: `1px solid ${isOver ? "#ef4444" : isMyColumn ? "#fbbf24" : "#475569"}`,
+          color: isOver ? "#ef4444" : isMyColumn ? "#fbbf24" : "#94a3b8",
           padding: "4px 10px",
           borderRadius: "12px",
           fontSize: "0.8rem",
           fontWeight: "bold",
-          color: isOver ? "#ef4444" : isMyColumn ? "#fbbf24" : "#94a3b8",
           display: "inline-flex",
           alignItems: "center",
           gap: "6px",

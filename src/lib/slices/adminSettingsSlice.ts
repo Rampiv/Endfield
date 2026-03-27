@@ -1,4 +1,3 @@
-// src/lib/slices/adminSettingsSlice.ts
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { ref, get, update } from "firebase/database";
 import { db } from "@/lib/firebase";

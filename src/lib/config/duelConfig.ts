@@ -1,5 +1,3 @@
-// src/lib/config/duelConfig.ts
-
 export const DUEL_CONFIG = {
   // 🎭 Драфт
   draft: {

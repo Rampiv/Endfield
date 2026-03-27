@@ -36,7 +36,7 @@ export function ActiveDuelCard({ duel, currentUserId }: Props) {
       </div> */}
 
       <div>
-        Противник: {opponentId} {/* Здесь можно подгрузить имя из users */}
+        Противник: {opponentId}
       </div>
 
       {duel.status === "drafting" && duel.currentTurn === currentUserId && (

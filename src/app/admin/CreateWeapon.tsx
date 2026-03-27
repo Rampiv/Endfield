@@ -1,4 +1,3 @@
-// src/app/admin/weapons/new/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -24,7 +23,7 @@ export default function NewWeaponPage({ onClose }: Props) {
     constellation: 0,
   });
 
-  // ✅ Расчет "веса" оружия для лимита команды
+  // Расчет "веса" оружия для лимита команды
   const unitCost = formData.constellation + 1;
 
   const handleSubmit = async (e: React.FormEvent) => {

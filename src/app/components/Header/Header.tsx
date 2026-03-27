@@ -26,7 +26,7 @@ export const Header = () => {
   return (
     <header className="header">
       <div className="header__content">
-      <Link href={"/"} className="header__btn header__return">Домой</Link>
+      <Link href={"/"} className="header__btn header__return">На главную</Link>
         {user && <Link href="/user" className="header__btn header__btn-name">{user.displayName}</Link>}
         {!user && (
           <>

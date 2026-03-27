@@ -1,4 +1,3 @@
-// src/lib/authProvider.tsx
 "use client";
 
 import { useEffect } from "react";

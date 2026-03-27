@@ -5,6 +5,7 @@ import AuthProvider from "@/lib/authProvider";
 import { store } from "@/lib/store";
 import ModalProvider from "./modalProvider";
 import { Toaster } from "react-hot-toast";
+import background from './assets/back.webp'
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -36,6 +37,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           }}
         />
         {children}
+        <img src={background.src} className="background-img" alt="background"/>
       </AuthProvider>
     </Provider>
   );

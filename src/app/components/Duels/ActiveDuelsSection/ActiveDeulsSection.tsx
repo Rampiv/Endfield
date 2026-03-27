@@ -1,10 +1,7 @@
-// src/app/components/Duels/ActiveDuelsSection/ActiveDuelsSection.tsx
 "use client";
 
 import Link from "next/link";
 import { Duel } from "@/lib/types";
-// Убираем useDuelPermissions, если он больше не нужен как хук,
-// или меняем его сигнатуру (см. ниже).
 import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store";
 import { useMemo } from "react";
@@ -18,8 +15,6 @@ interface Props {
 
 export function ActiveDuelsSection({ duels, currentUserId }: Props) {
   const allUsers = useSelector((state: RootState) => state.users?.list || []);
-
-  // ✅ ИСПРАВЛЕНИЕ: Получаем роль ЗДЕСЬ, на верхнем уровне компонента
   const userRole = useSelector((state: RootState) => state.auth.user?.role);
   const isAdmin = userRole === "admin";
 

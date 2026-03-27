@@ -1,4 +1,3 @@
-// src/components/duels/weapons/WeaponSelection.tsx
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -40,7 +39,7 @@ export function WeaponSelector({
   const [localWeapons, setLocalWeapons] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   
-  // ✅ Состояние для фильтра по типу оружия
+  // Состояние для фильтра по типу оружия
   const [weaponTypeFilter, setWeaponTypeFilter] = useState<string>("");
 
   const dbWeapons = duel.weapons?.[playerId] || [];
@@ -79,7 +78,7 @@ export function WeaponSelector({
     return playerProfile?.weapons?.[wId]?.constellation ?? 0;
   };
 
-  // ✅ ЛОГИКА ФИЛЬТРАЦИИ С УЧЕТОМ ТИПА
+  // ЛОГИКА ФИЛЬТРАЦИИ С УЧЕТОМ ТИПА
   const availableWeapons = useMemo(() => {
     return allWeapons.filter((w) => {
       if (!w.id) return false;
@@ -102,7 +101,7 @@ export function WeaponSelector({
   const toggleModal = (open: boolean) => {
     setIsOpen(open);
     if (open) {
-      setWeaponTypeFilter(""); // Сбрасываем фильтр при открытии
+      setWeaponTypeFilter("");
     }
   };
 
@@ -168,7 +167,7 @@ export function WeaponSelector({
               <button onClick={() => toggleModal(false)}>✕</button>
             </div>
             
-            {/* ✅ ПАНЕЛЬ ФИЛЬТРОВ */}
+            {/* ПАНЕЛЬ ФИЛЬТРОВ */}
             <div style={{ padding: '0.5rem 0', borderBottom: '1px solid #334155', marginBottom: '1rem' }}>
               <label style={{ fontSize: '0.9rem', color: '#94a3b8', marginRight: '0.5rem' }}>
                 Фильтр по типу:

@@ -96,7 +96,6 @@ export function ItemChooseModal({ onClose, itemType }: Props) {
     }
   };
 
-  // 📝 Тексты в зависимости от типа
   const texts = {
     title: itemType === "character" ? "Выберите персонажа" : "Выберите оружие",
     placeholder:
@@ -108,7 +107,6 @@ export function ItemChooseModal({ onClose, itemType }: Props) {
     notFound: "Не найдено по запросу",
   };
 
-  // ⏳ Загрузка
   if (itemsStatus === "loading" || userItemsStatus === "loading") {
     return (
       <div>
@@ -118,7 +116,6 @@ export function ItemChooseModal({ onClose, itemType }: Props) {
     );
   }
 
-  // ❌ Ошибка
   if (itemsStatus === "failed" || userItemsStatus === "failed") {
     return (
       <div>
@@ -132,7 +129,7 @@ export function ItemChooseModal({ onClose, itemType }: Props) {
     <>
       <h2 className="h2-common">{texts.title}</h2>
 
-      {/* 🔍 Поиск */}
+      {/* Поиск */}
       <input
         type="text"
         placeholder={texts.placeholder}
@@ -184,10 +181,7 @@ export function ItemChooseModal({ onClose, itemType }: Props) {
 
       {/* Кнопка закрытия */}
       <div className="item-choose__close-container">
-        <button
-          onClick={onClose}
-          className="item-choose__btn-close"
-        >
+        <button onClick={onClose} className="item-choose__btn-close">
           Закрыть
         </button>
       </div>

@@ -1,4 +1,3 @@
-// src/components/duels/DuelInvitesSection.tsx
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
@@ -91,7 +90,7 @@ export function DuelInvitesSection({ userId }: Props) {
     };
   }, [dispatch, userId]);
 
-  // ✅ УЛУЧШЕННАЯ ПРОВЕРКА ДОСТУПНОСТИ СОПЕРНИКА
+  // ПРОВЕРКА ДОСТУПНОСТИ СОПЕРНИКА
   const availableOpponents = useMemo(() => {
     return allUsers.filter((user: any) => {
       if (!user?.uid || user.uid === userId) return false;

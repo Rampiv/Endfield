@@ -1,4 +1,3 @@
-// src/components/Modal/ItemEditModal.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -22,7 +21,6 @@ interface Props {
 
 type Item = Character | Weapon;
 
-// Тип для таблицы стоимостей: { "0": 1, "1": 5, ... }
 type CostTable = Record<number, number>;
 
 export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }: Props) {
@@ -76,15 +74,14 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
     }
   }, [existingItem, itemType]);
 
-  // ✅ ЛОГИКА РАСЧЕТА ВЕСА
+  // лОГИКА РАСЧЕТА ВЕСА
   const currentConst = formData.constellation ?? 0;
   
-  // Получаем вес для текущей консты: сначала смотрим в таблице, потом формула
   const getCostForConst = (c: number) => {
     if (formData.costTable && formData.costTable[c] !== undefined) {
       return formData.costTable[c];
     }
-    return c + 1; // Базовая формула
+    return c + 1; 
   };
 
   const currentCost = getCostForConst(currentConst);
@@ -293,7 +290,7 @@ export function ItemEditModal({ onClose, itemType, itemId, isUserMode = false }:
               </select>
             </div>
 
-            {/* ✅ ТАБЛИЦА СТОИМОСТИ КОНСТ (ТОЛЬКО АДМИН) */}
+            {/* ТАБЛИЦА СТОИМОСТИ КОНСТ (ТОЛЬКО АДМИН) */}
             <div className="form__content" style={{ background: '#1e293b', padding: '1rem', borderRadius: '8px', border: '1px solid #475569' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <label className="form__label" style={{ color: '#fbbf24', margin: 0 }}>

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/lib/store";
-// fetchAllDuels больше не нужен для основной логики, но можно оставить для импорта типов если нужно
 import { useAdmin } from "@/lib/hook/useAdmin";
 import {
   ActiveDuelsSection,
@@ -13,25 +12,19 @@ import {
   Loading,
 } from "./components";
 import { fetchAllUsers } from "@/lib/slices/usersSlice";
-// Импортируем функции Firebase для подписки
 import { ref, onValue, off } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { Duel } from "@/lib/types";
-import toast from "react-hot-toast";
 
 export default function DuelsPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { user, loading: authLoading } = useAdmin();
-
-  // ✅ 1. Создаем локальные стейты для списков дуэлей
   const [activeDuels, setActiveDuels] = useState<Duel[]>([]);
   const [finishedDuels, setFinishedDuels] = useState<Duel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Статус пользователей оставляем из Redux
   const usersStatus = useSelector((state: RootState) => state.users?.status);
 
-  // ✅ 2. Подписка на Realtime обновления дуэлей
+  // Подписка на Realtime обновления дуэлей
   useEffect(() => {
     if (!user?.uid) return;
 
@@ -66,21 +59,18 @@ export default function DuelsPage() {
       setIsLoading(false);
     });
 
-    // Очистка подписки при выходе со страницы
     return () => {
       off(duelsRef);
       unsubscribe();
     };
   }, [user?.uid]);
 
-  // Загрузка пользователей (оставляем как было)
   useEffect(() => {
     if (user?.uid) {
       dispatch(fetchAllUsers());
     }
   }, [dispatch, user?.uid]);
 
-  // Показываем загрузку, если авторизация, дуэли или пользователи еще грузятся
   if (authLoading || isLoading || usersStatus === "loading") {
     return (
       <>
@@ -122,12 +112,8 @@ export default function DuelsPage() {
       <Header />
       <main className="duels-page">
         <div className="container">
-          {/* Инвайты (если внутри DuelInvitesSection есть своя подписка, они будут работать) */}
           <DuelInvitesSection userId={user.uid} />
-
-          {/* ✅ Передаем стейты, которые обновляются в реальном времени */}
           <ActiveDuelsSection duels={activeDuels} currentUserId={user.uid} />
-
           <FinishedDuelsSection
             duels={finishedDuels}
             currentUserId={user.uid}

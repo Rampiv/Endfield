@@ -1,4 +1,3 @@
-// src/app/admin/characters/new/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -24,7 +23,7 @@ export default function NewCharacterPage({ onClose }: Props) {
     constellation: 0,
   });
 
-  // ✅ Расчет "веса" персонажа для лимита команды: Конста + 1
+  // Расчет "веса" персонажа для лимита команды: Конста + 1
   const unitCost = formData.constellation + 1;
 
   const handleSubmit = async (e: React.FormEvent) => {

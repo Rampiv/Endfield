@@ -1,4 +1,3 @@
-// store/index.ts или store/store.ts
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./slices/authSlice";
 import modalReducer from "./slices/modalSlice";
@@ -10,7 +9,7 @@ import usersReducer from "./slices/usersSlice";
 import adminSettingsReducer from "./slices/adminSettingsSlice";
 
 
-// ✅ Создаём store сразу (не функцию)
+// Создаём store сразу (не функцию)
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -24,7 +23,7 @@ export const store = configureStore({
   },
 });
 
-// ✅ Правильные типы
+// Правильные типы
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 export type AppStore = typeof store;

@@ -1,6 +1,7 @@
 @use "../styles/global.scss" as *;
 
 .user {
+  padding: 0 0 10px 0;
   &__list {
     @include listReset();
     @include flexible();
@@ -8,11 +9,11 @@
     justify-content: flex-start;
     gap: 10px;
   }
-  
+
   &__item {
     position: relative;
     width: fit-content;
-    min-width: 100px
+    min-width: 100px;
   }
 
   &__btn-add {
@@ -34,6 +35,7 @@
     display: flex;
     justify-content: center;
     width: 100%;
+    margin-bottom: 10px;
   }
   &__btn-edit {
     @include btnReset();
@@ -53,5 +55,76 @@
 
   &__item-null {
     margin-bottom: 5px;
+  }
+  &__badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: $badge-back;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: $badge-text;
+    font-weight: bold;
+  }
+}
+
+.filters-panel {
+  margin-bottom: 10px;
+  padding: 1rem;
+  background: $panels;
+  border-radius: 8px;
+  &__search-block {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  &__search {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid $panels-boreder;
+    background: $panels2;
+    color: $white;
+  }
+  &__btn {
+    padding: 0.5rem 1rem;
+    background: $panels-btn;
+    color: $white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  &__filters-block {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+  &__select {
+    width: 100%;
+    padding: 0.4rem;
+    background: $panels2;
+    color: $white;
+    border: 1px solid #475569;
+    border-radius: 4px;
+  }
+}
+
+.user-items {
+  &__content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  &__items-container {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 }
