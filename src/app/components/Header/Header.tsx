@@ -26,8 +26,14 @@ export const Header = () => {
   return (
     <header className="header">
       <div className="header__content">
-      <Link href={"/"} className="header__btn header__return">На главную</Link>
-        {user && <Link href="/user" className="header__btn header__btn-name">{user.displayName}</Link>}
+        <Link href={"/"} className="header__btn header__return">
+          На главную
+        </Link>
+        {user && (
+          <Link href="/user" className="header__btn header__btn-name">
+            {user.displayName}
+          </Link>
+        )}
         {!user && (
           <>
             <button
@@ -44,9 +50,16 @@ export const Header = () => {
             </button>
           </>
         )}
-        {isAdmin && <Link href="/admin" className="header__btn">Admin панель</Link>}
+        {isAdmin && (
+          <Link href="/admin" className="header__btn">
+            Admin панель
+          </Link>
+        )}
         {user && (
-          <button className="header__btn header__btn-exit" onClick={() => handleLogout()}>
+          <button
+            className="header__btn header__btn-exit"
+            onClick={() => handleLogout()}
+          >
             Выйти
           </button>
         )}

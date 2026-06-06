@@ -75,7 +75,8 @@ body {
 .background-img {
   position: fixed;
   top: 0;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   height: 100vh;
   object-fit: cover;
   z-index: -1000;

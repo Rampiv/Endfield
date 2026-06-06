@@ -26,7 +26,10 @@ export default function DuelsPage() {
 
   // Подписка на Realtime обновления дуэлей
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid) {
+      setIsLoading(false);
+      return;
+    }
 
     const duelsRef = ref(db, "duels");
     setIsLoading(true);
@@ -71,7 +74,7 @@ export default function DuelsPage() {
     }
   }, [dispatch, user?.uid]);
 
-  if (authLoading || isLoading || usersStatus === "loading") {
+  if (authLoading || isLoading ) {
     return (
       <>
         <Header />
